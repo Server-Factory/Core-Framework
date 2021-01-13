@@ -7,6 +7,7 @@ import net.milosvasic.factory.configuration.variable.Context
 import net.milosvasic.factory.configuration.variable.Key
 import net.milosvasic.factory.configuration.variable.PathBuilder
 import net.milosvasic.factory.configuration.variable.Variable
+import net.milosvasic.factory.log
 
 class Remote(
 
@@ -19,12 +20,13 @@ class Remote(
     @Throws(IllegalStateException::class)
     fun getHost(preferIpAddress: Boolean = true): String {
 
-        if (preferIpAddress && hostIp == null) {
+        val behaviorGetIp = behaviorGetIp()
+        if (behaviorGetIp && preferIpAddress && hostIp == null) {
 
             throw IllegalStateException("No host ip address available")
         }
         hostIp?.let {
-            if (preferIpAddress && (it.isEmpty() || it.isBlank())) {
+            if (behaviorGetIp && preferIpAddress && (it.isEmpty() || it.isBlank())) {
 
                 throw IllegalStateException("Host ip address is empty")
             }
@@ -61,5 +63,24 @@ class Remote(
         return null
     }
 
-    fun print() = "Remote(host=$host, hostIp=$hostIp, port=$port, account='$account')"
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
+    private fun behaviorGetIp(): Boolean {
+
+        val behaviorPath = PathBuilder()
+            .addContext(Context.Behavior)
+            .setKey(Key.GetIp)
+            .build()
+
+        var behaviorGetIp = false
+        val msg = "Get IP behavior setting"
+        try {
+
+            behaviorGetIp = Variable.get(behaviorPath).toBoolean()
+            log.v("$msg (1): $behaviorGetIp")
+        } catch (e: IllegalStateException) {
+
+            log.v("$msg (2): $behaviorGetIp")
+        }
+        return behaviorGetIp
+    }
 }
