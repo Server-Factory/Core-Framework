@@ -10,7 +10,7 @@
   },
   "variables": {
     "SERVER": {
-      "HOSTNAME": "test.local",
+      "HOSTNAME": "localhost",
       "SERVER_HOME": "/stub"
     },
     "DOCKER": {
