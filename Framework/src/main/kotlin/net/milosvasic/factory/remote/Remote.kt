@@ -19,7 +19,17 @@ class Remote(
     @Throws(IllegalStateException::class)
     fun getHost(): String {
 
-        hostIp?.let { return it }
+        if (hostIp == null) {
+
+            throw IllegalStateException("No host ip address available")
+        }
+        hostIp?.let {
+            if (it.isEmpty() || it.isBlank()) {
+
+                throw IllegalStateException("Host ip address is empty")
+            }
+            return it
+        }
         getHostname()?.let { return it }
         return LOCALHOST
     }
