@@ -14,6 +14,7 @@ constructor(
     configuration: MutableMap<CommandConfiguration, Boolean> = CommandConfiguration.DEFAULT.toMutableMap(),
 
     sshCommand: String = Commands.ssh(
+
         remote.account,
         if (remoteCommand is ObtainableTerminalCommand) {
 
@@ -22,6 +23,6 @@ constructor(
             remoteCommand.command
         },
         remote.port,
-        remote.getHost()
+        remote.getHost(preferIpAddress = false)
     )
 ) : TerminalCommand(sshCommand, configuration)

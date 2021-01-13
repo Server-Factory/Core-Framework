@@ -17,14 +17,14 @@ class Remote(
 ) {
 
     @Throws(IllegalStateException::class)
-    fun getHost(): String {
+    fun getHost(preferIpAddress: Boolean = true): String {
 
-        if (hostIp == null) {
+        if (preferIpAddress && hostIp == null) {
 
             throw IllegalStateException("No host ip address available")
         }
         hostIp?.let {
-            if (it.isEmpty() || it.isBlank()) {
+            if (preferIpAddress && (it.isEmpty() || it.isBlank())) {
 
                 throw IllegalStateException("Host ip address is empty")
             }
