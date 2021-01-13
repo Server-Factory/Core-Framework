@@ -17,7 +17,7 @@ class Remote(
     @SerializedName("user") val account: String
 ) {
 
-    @Throws(IllegalStateException::class)
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
     fun getHost(preferIpAddress: Boolean = true): String {
 
         val behaviorGetIp = behaviorGetIp()
