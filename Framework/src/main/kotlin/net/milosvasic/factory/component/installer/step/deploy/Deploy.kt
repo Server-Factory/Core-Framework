@@ -2,6 +2,7 @@ package net.milosvasic.factory.component.installer.step.deploy
 
 import net.milosvasic.factory.common.DataHandler
 import net.milosvasic.factory.common.filesystem.FilePathBuilder
+import net.milosvasic.factory.common.obtain.Obtain
 import net.milosvasic.factory.component.installer.step.RemoteOperationInstallationStep
 import net.milosvasic.factory.configuration.variable.Variable
 import net.milosvasic.factory.execution.flow.implementation.CommandFlow
@@ -78,15 +79,21 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
             terminal?.let { term ->
                 remote?.let { rmt ->
 
+                    val scpObtain = object : Obtain<TerminalCommand> {
+
+                        @Throws(IllegalArgumentException::class, IllegalStateException::class)
+                        override fun obtain() = getScp(rmt)
+                    }
+
                     val flow = CommandFlow()
-                            .width(conn)
-                            .perform(MkdirCommand(where), onDirectoryCreated)
-                            .width(term)
-                            .perform(TarCommand(whatFile.absolutePath, getLocalTar()))
-                            .perform(getScp(rmt))
-                            .width(conn)
-                            .perform(UnTarCommand(getRemoteTar(), where))
-                            .perform(RmCommand(getRemoteTar()))
+                        .width(conn)
+                        .perform(MkdirCommand(where), onDirectoryCreated)
+                        .width(term)
+                        .perform(TarCommand(whatFile.absolutePath, getLocalTar()))
+                        .perform(scpObtain)
+                        .width(conn)
+                        .perform(UnTarCommand(getRemoteTar(), where))
+                        .perform(RmCommand(getRemoteTar()))
 
                     try {
                         val protoCleanup = getProtoCleanup()
@@ -97,10 +104,10 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
                     }
 
                     return flow
-                            .width(term)
-                            .perform(RmCommand(getLocalTar()))
-                            .width(conn)
-                            .perform(getSecurityChanges(rmt))
+                        .width(term)
+                        .perform(RmCommand(getLocalTar()))
+                        .width(conn)
+                        .perform(getSecurityChanges(rmt))
                 }
             }
         }
@@ -230,9 +237,9 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
 
         val root = File(File.separator)
         val path = FilePathBuilder()
-                .addContext(root)
-                .addContext("tmp")
-                .build()
+            .addContext(root)
+            .addContext("tmp")
+            .build()
 
         return File(path)
     }
@@ -241,17 +248,17 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
     private fun getRemoteTar(): String {
 
         return FilePathBuilder()
-                .addContext(where)
-                .addContext("${whatFile.name}${Commands.TAR_EXTENSION}")
-                .build()
+            .addContext(where)
+            .addContext("${whatFile.name}${Commands.TAR_EXTENSION}")
+            .build()
     }
 
     @Throws(InvalidPathException::class)
     protected fun getLocalTar(): String {
 
         return FilePathBuilder()
-                .addContext(tmpPath)
-                .addContext("${whatFile.name}${Commands.TAR_EXTENSION}")
-                .build()
+            .addContext(tmpPath)
+            .addContext("${whatFile.name}${Commands.TAR_EXTENSION}")
+            .build()
     }
 }
