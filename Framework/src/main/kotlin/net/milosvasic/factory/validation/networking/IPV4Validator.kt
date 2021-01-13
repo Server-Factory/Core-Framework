@@ -4,7 +4,6 @@ import net.milosvasic.factory.common.Validation
 import net.milosvasic.factory.log
 import java.util.regex.Pattern
 import java.util.regex.PatternSyntaxException
-import kotlin.IllegalArgumentException
 
 class IPV4Validator : Validation<String> {
 
