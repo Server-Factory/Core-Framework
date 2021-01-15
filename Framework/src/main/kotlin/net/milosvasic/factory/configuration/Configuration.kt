@@ -13,27 +13,27 @@ import java.util.concurrent.LinkedBlockingQueue
 
 abstract class Configuration(
 
-        definition: Definition? = null,
-        val name: String? = String.EMPTY,
-        val remote: Remote,
-        uses: LinkedBlockingQueue<String>?,
-        includes: LinkedBlockingQueue<String>?,
-        software: LinkedBlockingQueue<String>?,
-        containers: LinkedBlockingQueue<String>?,
-        variables: Node? = null,
-        overrides: MutableMap<String, MutableMap<String, SoftwareConfiguration>>?,
-        enabled: Boolean? = null
+    definition: Definition? = null,
+    val name: String? = String.EMPTY,
+    val remote: Remote,
+    uses: LinkedBlockingQueue<String>?,
+    includes: LinkedBlockingQueue<String>?,
+    software: LinkedBlockingQueue<String>?,
+    containers: LinkedBlockingQueue<String>?,
+    variables: Node? = null,
+    overrides: MutableMap<String, MutableMap<String, SoftwareConfiguration>>?,
+    enabled: Boolean? = null
 
 ) : ConfigurationInclude(
 
-        definition,
-        uses,
-        includes,
-        software,
-        containers,
-        variables,
-        overrides,
-        enabled
+    definition,
+    uses,
+    includes,
+    software,
+    containers,
+    variables,
+    overrides,
+    enabled
 ) {
 
     var proxy: Proxy? = null
@@ -49,9 +49,9 @@ abstract class Configuration(
             if (!path.endsWith(".json")) {
 
                 val param = FilePathBuilder()
-                        .addContext(File.separator)
-                        .addContext(DEFAULT_CONFIGURATION_FILE)
-                        .build()
+                    .addContext(File.separator)
+                    .addContext(DEFAULT_CONFIGURATION_FILE)
+                    .build()
 
                 fullPath += param
             }
@@ -86,6 +86,10 @@ abstract class Configuration(
                     }
                 }
                 configuration.proxy?.let {
+                    proxy?.let { p ->
+
+                        throw IllegalArgumentException("Proxy conflict: ${p.print()} vs ${it.print()}")
+                    }
                     proxy = it
                 }
             }
