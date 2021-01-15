@@ -9,7 +9,7 @@ import net.milosvasic.factory.configuration.variable.PathBuilder
 import net.milosvasic.factory.configuration.variable.Variable
 import net.milosvasic.factory.log
 
-class Remote(
+open class Remote(
 
     private var host: String?,
     private var hostIp: String?,
