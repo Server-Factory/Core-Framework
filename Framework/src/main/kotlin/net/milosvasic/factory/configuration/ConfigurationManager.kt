@@ -16,6 +16,7 @@ import net.milosvasic.factory.configuration.variable.*
 import net.milosvasic.factory.log
 import net.milosvasic.factory.platform.OperatingSystem
 import net.milosvasic.factory.proxy.Proxy
+import net.milosvasic.factory.proxy.ProxyValidator
 import net.milosvasic.factory.validation.JsonValidator
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
@@ -268,10 +269,18 @@ object ConfigurationManager : Initialization {
         }
     }
 
-    @Throws(IllegalArgumentException::class)
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
     private fun initializeProxy(proxy: Proxy) {
 
         log.i(proxy.print())
+        val validator = ProxyValidator()
+        if (validator.validate()) {
+
+            // TODO: Create proxy installation steps
+        } else {
+
+            throw IllegalArgumentException("Invalid proxy: ${proxy.print()}")
+        }
     }
 
     private fun checkAndGetVariable(path: Path): String {
