@@ -5,6 +5,7 @@ import net.milosvasic.factory.common.filesystem.FilePathBuilder
 import net.milosvasic.factory.configuration.definition.Definition
 import net.milosvasic.factory.configuration.variable.Node
 import net.milosvasic.factory.merge
+import net.milosvasic.factory.proxy.Proxy
 import net.milosvasic.factory.remote.Remote
 import java.io.File
 import java.nio.file.InvalidPathException
@@ -34,6 +35,8 @@ abstract class Configuration(
         overrides,
         enabled
 ) {
+
+    var proxy: Proxy? = null
 
     companion object {
 
@@ -81,6 +84,9 @@ abstract class Configuration(
                     overrides?.let { ods ->
                         it.merge(ods)
                     }
+                }
+                configuration.proxy?.let {
+                    proxy = it
                 }
             }
         }

@@ -34,22 +34,26 @@ class Installer(entryPoint: Connection) : InstallerAbstract(entryPoint), Package
     }
 
     override fun initialization() {
+
         installer.subscribe(listener)
         installer.initialize()
     }
 
     override fun termination() {
+
         installer.unsubscribe(listener)
         installer.terminate()
     }
 
     @Throws(IllegalStateException::class)
     override fun addSupportedPackageManager(packageManager: PackageManager) {
+
         installer.addSupportedPackageManager(packageManager)
     }
 
     @Throws(IllegalStateException::class)
     override fun removeSupportedPackageManager(packageManager: PackageManager) {
+
         installer.removeSupportedPackageManager(packageManager)
     }
 

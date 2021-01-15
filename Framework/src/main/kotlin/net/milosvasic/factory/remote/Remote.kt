@@ -11,8 +11,8 @@ import net.milosvasic.factory.log
 
 open class Remote(
 
-    private var host: String?,
-    private var hostIp: String?,
+    protected var host: String?,
+    protected var hostIp: String?,
     val port: Int,
     @SerializedName("user") val account: String
 ) {
@@ -36,8 +36,10 @@ open class Remote(
         return LOCALHOST
     }
 
+
+
     @Throws(IllegalArgumentException::class)
-    fun setHostIp(hostIp: String) {
+    fun setHostIpAddress(hostIp: String) {
 
         if (hostIp.isEmpty() || hostIp.isBlank()) {
 

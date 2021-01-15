@@ -27,7 +27,7 @@ class HostIpAddressDataHandler(private val remote: Remote) : DataHandler<Operati
 
                 die(e)
             }
-            remote.setHostIp(ip)
+            remote.setHostIpAddress(ip)
         }
     }
 

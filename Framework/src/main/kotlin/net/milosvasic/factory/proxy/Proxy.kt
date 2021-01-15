@@ -6,8 +6,9 @@ class Proxy(
 
     host: String?,
     hostIp: String?,
-    port: Int,
-    account: String
+    port: Int = 3128,
+    account: String = "",
+    val password: String? = ""
 
 ) : Remote(
 
@@ -15,4 +16,7 @@ class Proxy(
     hostIp,
     port,
     account
-)
+) {
+
+    fun print() = "Proxy(host=$host, hostIp=$hostIp, port=$port, account=$account)"
+}
