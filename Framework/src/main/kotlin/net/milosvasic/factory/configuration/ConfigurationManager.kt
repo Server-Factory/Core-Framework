@@ -15,6 +15,7 @@ import net.milosvasic.factory.configuration.recipe.RawJsonConfigurationRecipe
 import net.milosvasic.factory.configuration.variable.*
 import net.milosvasic.factory.log
 import net.milosvasic.factory.platform.OperatingSystem
+import net.milosvasic.factory.proxy.Proxy
 import net.milosvasic.factory.validation.JsonValidator
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
@@ -51,6 +52,10 @@ object ConfigurationManager : Initialization {
             configuration?.let {
 
                 initializeSystemVariables(it)
+                it.proxy?.let { proxy ->
+
+                    initializeProxy(proxy)
+                }
             }
             BusyWorker.free(busy)
         }
@@ -261,6 +266,12 @@ object ConfigurationManager : Initialization {
             val systemNode = Node(name = ctxSystem.context(), children = systemVariables)
             node?.append(systemNode)
         }
+    }
+
+    @Throws(IllegalArgumentException::class)
+    private fun initializeProxy(proxy: Proxy) {
+
+        log.i(proxy.print())
     }
 
     private fun checkAndGetVariable(path: Path): String {

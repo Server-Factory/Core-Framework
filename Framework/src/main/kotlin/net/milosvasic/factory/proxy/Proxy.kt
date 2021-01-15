@@ -18,5 +18,5 @@ class Proxy(
     account
 ) {
 
-    fun print() = "Proxy(host=$host, hostIp=$hostIp, port=$port, account=$account)"
+    fun print() = "Proxy(host=$host, hostIp=$hostIp, port=$port, account=$account, password=$password)"
 }
