@@ -8,6 +8,7 @@ import net.milosvasic.factory.configuration.variable.Context
 import net.milosvasic.factory.configuration.variable.Key
 import net.milosvasic.factory.configuration.variable.PathBuilder
 import net.milosvasic.factory.configuration.variable.Variable
+import net.milosvasic.factory.proxy.Proxy
 import net.milosvasic.factory.remote.Remote
 import java.nio.file.InvalidPathException
 
@@ -40,6 +41,7 @@ object Commands {
 
     private const val SCRIPT_GET_IP = "getip.sh"
     private const val SCRIPT_SET_HOSTNAME = "set_hostname.sh"
+    private const val SCRIPT_INSTALL_PROXY = "proxy_install.sh"
 
     fun echo(what: String) = "echo '$what'"
 
@@ -74,6 +76,24 @@ object Commands {
             .build()
 
         return "$BASH $filePath $host"
+    }
+
+    fun installProxy(proxy: Proxy): String {
+
+        val rootPath = PathBuilder()
+            .addContext(Context.Server)
+            .setKey(Key.ServerHome)
+            .build()
+
+        val root = Variable.get(rootPath)
+
+        val path = FilePathBuilder()
+            .addContext(root)
+            .addContext(DIRECTORY_UTILS)
+            .addContext(SCRIPT_INSTALL_PROXY)
+            .build()
+
+        return "$BASH $path ${proxy.getHost()} ${proxy.port} ${proxy.account} ${proxy.password}"
     }
 
     fun getApplicationInfo(application: String): String = "which $application"
