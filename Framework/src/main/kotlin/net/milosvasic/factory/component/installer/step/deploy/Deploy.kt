@@ -136,7 +136,7 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
             connection = conn
             return this
         }
-        val msg = "${conn::class.simpleName} is not supported, onlt ${SSH::class.simpleName}"
+        val msg = "${conn::class.simpleName} is not supported, only ${SSH::class.simpleName}"
         throw IllegalArgumentException(msg)
     }
 

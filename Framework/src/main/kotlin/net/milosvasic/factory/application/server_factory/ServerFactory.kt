@@ -36,6 +36,7 @@ import net.milosvasic.factory.execution.flow.implementation.initialization.Initi
 import net.milosvasic.factory.operation.OperationResult
 import net.milosvasic.factory.operation.OperationResultListener
 import net.milosvasic.factory.platform.*
+import net.milosvasic.factory.proxy.ProxyInstallation
 import net.milosvasic.factory.remote.Connection
 import net.milosvasic.factory.remote.ConnectionProvider
 import net.milosvasic.factory.remote.ssh.SSH
@@ -438,21 +439,9 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
         val conf = ConfigurationManager.getConfiguration()
         conf.proxy?.let { proxy ->
 
-            /*
-            @Throws(IllegalArgumentException::class, IllegalStateException::class)
-            private fun initializeProxy(proxy: Proxy) {
-
-                log.i(proxy.print())
-                val validator = ProxyValidator()
-                if (validator.validate()) {
-
-
-                } else {
-
-                    throw IllegalArgumentException("Invalid proxy: ${proxy.print()}")
-                }
-            }
-             */
+            ProxyInstallation(proxy)
+                .setConnection(ssh)
+                .getFlow()
         }
         return CommandFlow()
             .width(ssh.getTerminal())
