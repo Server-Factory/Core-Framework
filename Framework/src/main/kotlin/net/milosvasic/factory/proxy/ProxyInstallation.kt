@@ -1,18 +1,10 @@
 package net.milosvasic.factory.proxy
 
-import net.milosvasic.factory.common.filesystem.FilePathBuilder
 import net.milosvasic.factory.component.installer.step.RemoteOperationInstallationStep
-import net.milosvasic.factory.component.installer.step.deploy.Deploy
-import net.milosvasic.factory.configuration.variable.Context
-import net.milosvasic.factory.configuration.variable.Key
-import net.milosvasic.factory.configuration.variable.PathBuilder
-import net.milosvasic.factory.configuration.variable.Variable
 import net.milosvasic.factory.execution.flow.implementation.CommandFlow
 import net.milosvasic.factory.log
-import net.milosvasic.factory.operation.Operation
 import net.milosvasic.factory.remote.Connection
 import net.milosvasic.factory.remote.ssh.SSH
-import net.milosvasic.factory.terminal.command.Commands
 
 class ProxyInstallation(private val proxy: Proxy) : RemoteOperationInstallationStep<SSH>() {
 
