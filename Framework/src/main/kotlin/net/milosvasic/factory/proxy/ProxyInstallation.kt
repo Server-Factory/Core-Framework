@@ -19,7 +19,8 @@ class ProxyInstallation(private val proxy: Proxy) : RemoteOperationInstallationS
             val validator = ProxyValidator()
             if (validator.validate()) {
 
-
+                // TODO: Execute proxy install shell script
+                throw IllegalStateException("Not implemented")
             } else {
 
                 throw IllegalArgumentException("Invalid proxy: ${proxy.print()}")
