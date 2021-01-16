@@ -53,10 +53,6 @@ object ConfigurationManager : Initialization {
             configuration?.let {
 
                 initializeSystemVariables(it)
-                it.proxy?.let { proxy ->
-
-                    initializeProxy(proxy)
-                }
             }
             BusyWorker.free(busy)
         }
@@ -154,6 +150,7 @@ object ConfigurationManager : Initialization {
     @Synchronized
     @Throws(IllegalStateException::class)
     override fun checkInitialized() {
+
         if (isInitialized()) {
             throw IllegalStateException("Configuration manager has been already initialized")
         }
@@ -162,6 +159,7 @@ object ConfigurationManager : Initialization {
     @Synchronized
     @Throws(IllegalStateException::class)
     override fun checkNotInitialized() {
+
         if (!isInitialized()) {
             throw IllegalStateException("Configuration manager has not been initialized")
         }
@@ -266,20 +264,6 @@ object ConfigurationManager : Initialization {
 
             val systemNode = Node(name = ctxSystem.context(), children = systemVariables)
             node?.append(systemNode)
-        }
-    }
-
-    @Throws(IllegalArgumentException::class, IllegalStateException::class)
-    private fun initializeProxy(proxy: Proxy) {
-
-        log.i(proxy.print())
-        val validator = ProxyValidator()
-        if (validator.validate()) {
-
-            // TODO: Create proxy installation steps
-        } else {
-
-            throw IllegalArgumentException("Invalid proxy: ${proxy.print()}")
         }
     }
 

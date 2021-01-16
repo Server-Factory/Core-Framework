@@ -76,6 +76,10 @@ class StubServerFactory(builder: ServerFactoryBuilder) : ServerFactory(builder) 
         .width(ssh)
         .perform(EchoCommand("Core utils stub deployment: $what -> $where"))
 
+    override fun getProxyInstallationFlow(ssh: Connection) = CommandFlow()
+        .width(ssh)
+        .perform(EchoCommand("Proxy stub installation"))
+
     override fun getIpAddressObtainCommand(os: OperatingSystem) =
         object : Obtain<TerminalCommand> {
 
@@ -104,7 +108,7 @@ class StubServerFactory(builder: ServerFactoryBuilder) : ServerFactory(builder) 
         return builder.build()
     }
 
-    override fun getCoreUtilsInstallerInitializationFlow() : FlowBuilder<*, *, *> {
+    override fun getCoreUtilsInstallerInitializationFlow(): FlowBuilder<*, *, *> {
 
         return InitializationFlow().width(installer)
     }

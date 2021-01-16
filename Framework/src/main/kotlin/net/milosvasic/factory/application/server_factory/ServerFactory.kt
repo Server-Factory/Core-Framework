@@ -433,6 +433,32 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
         .setConnection(ssh)
         .getFlow()
 
+    protected open fun getProxyInstallationFlow(ssh: Connection): CommandFlow {
+
+        val conf = ConfigurationManager.getConfiguration()
+        conf.proxy?.let { proxy ->
+
+            /*
+            @Throws(IllegalArgumentException::class, IllegalStateException::class)
+            private fun initializeProxy(proxy: Proxy) {
+
+                log.i(proxy.print())
+                val validator = ProxyValidator()
+                if (validator.validate()) {
+
+
+                } else {
+
+                    throw IllegalArgumentException("Invalid proxy: ${proxy.print()}")
+                }
+            }
+             */
+        }
+        return CommandFlow()
+            .width(ssh.getTerminal())
+            .perform(EchoCommand("No Proxy configuration provided"))
+    }
+
     protected open fun getIpAddressObtainCommand(os: OperatingSystem) =
         object : Obtain<TerminalCommand> {
 
@@ -525,6 +551,8 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
             )
         }
 
+        val proxyInstallationFlow = getProxyInstallationFlow(ssh)
+
         val installationFlow = getCoreUtilsInstallationFlow()
         val installerInitFlow = getCoreUtilsInstallerInitializationFlow()
 
@@ -561,6 +589,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
             .connect(installerInitFlow)
             .connect(installationFlow)
             .connect(coreUtilsDeployment)
+            .connect(proxyInstallationFlow)
             .onFinish(dieCallback)
     }
 
