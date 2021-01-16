@@ -439,7 +439,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
         val conf = ConfigurationManager.getConfiguration()
         conf.proxy?.let { proxy ->
 
-            ProxyInstallation(proxy)
+            return ProxyInstallation(proxy)
                 .setConnection(ssh)
                 .getFlow()
         }
