@@ -15,7 +15,7 @@ class ProxyInstallation(private val proxy: Proxy) : RemoteOperationInstallationS
 
             log.i(proxy.print())
             val validator = ProxyValidator()
-            if (validator.validate()) {
+            if (validator.validate(proxy)) {
 
                 val cmd = ProxyInstallationCommand(proxy)
                 return CommandFlow()
