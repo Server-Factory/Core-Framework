@@ -18,7 +18,7 @@ open class Remote(
 ) {
 
     @Throws(IllegalStateException::class)
-    fun getHost(preferIpAddress: Boolean = true): String {
+    open fun getHost(preferIpAddress: Boolean = true): String {
 
         val behaviorGetIp = behaviorGetIp()
         if (behaviorGetIp && preferIpAddress && hostIp == null) {

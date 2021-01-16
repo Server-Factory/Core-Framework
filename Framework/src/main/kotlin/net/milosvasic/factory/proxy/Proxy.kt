@@ -4,9 +4,9 @@ import net.milosvasic.factory.remote.Remote
 
 class Proxy(
 
-    host: String?,
-    hostIp: String?,
+    host: String,
     port: Int = 3128,
+    hostIp: String? = "",
     account: String = "",
     val password: String? = ""
 
@@ -18,5 +18,13 @@ class Proxy(
     account
 ) {
 
-    fun print() = "Proxy(host=$host, hostIp=$hostIp, port=$port, account=$account, password=$password)"
+    override fun getHost(preferIpAddress: Boolean): String {
+
+        host?.let {
+            return it
+        }
+        throw IllegalStateException("Host information unavailable")
+    }
+
+    fun print() = "Proxy(host=$host, port=$port, account=$account, password=$password)"
 }
