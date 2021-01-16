@@ -17,9 +17,10 @@ class ProxyInstallation(private val proxy: Proxy) : RemoteOperationInstallationS
             val validator = ProxyValidator()
             if (validator.validate()) {
 
+                val cmd = ProxyInstallationCommand(proxy)
                 return CommandFlow()
                     .width(conn)
-                    .perform(ProxyInstallationCommand(proxy))
+                    .perform(cmd)
             } else {
 
                 throw IllegalArgumentException("Invalid proxy: ${proxy.print()}")

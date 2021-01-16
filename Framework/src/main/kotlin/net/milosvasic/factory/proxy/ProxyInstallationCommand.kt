@@ -2,5 +2,10 @@ package net.milosvasic.factory.proxy
 
 import net.milosvasic.factory.terminal.TerminalCommand
 import net.milosvasic.factory.terminal.command.Commands
+import java.nio.file.InvalidPathException
 
-class ProxyInstallationCommand(proxy: Proxy) : TerminalCommand(Commands.installProxy(proxy))
+class ProxyInstallationCommand
+@Throws(InvalidPathException::class, IllegalStateException::class)
+constructor(proxy: Proxy) :
+    @Throws(InvalidPathException::class, IllegalStateException::class)
+    TerminalCommand(Commands.installProxy(proxy))

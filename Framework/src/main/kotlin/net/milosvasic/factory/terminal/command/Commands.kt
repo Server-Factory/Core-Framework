@@ -59,6 +59,7 @@ object Commands {
 
     fun getHostInfo(): String = "hostnamectl"
 
+    @Throws(InvalidPathException::class)
     fun getIpAddress(host: String): String {
 
         val path = PathBuilder()
@@ -78,6 +79,7 @@ object Commands {
         return "$BASH $filePath $host"
     }
 
+    @Throws(InvalidPathException::class, IllegalStateException::class)
     fun installProxy(proxy: Proxy): String {
 
         val rootPath = PathBuilder()
