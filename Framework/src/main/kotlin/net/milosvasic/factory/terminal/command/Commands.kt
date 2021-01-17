@@ -95,8 +95,14 @@ object Commands {
             .addContext(SCRIPT_INSTALL_PROXY)
             .build()
 
+        val selfSignedCa = if (proxy.isSelfSignedCA()) {
+
+            "true"
+        } else {
+            String.EMPTY
+        }
         return "$BASH $path ${proxy.getHost()} ${proxy.port} " +
-                "${proxy.getProxyAccount()} ${proxy.getProxyPassword()}"
+                "${proxy.getProxyAccount()} ${proxy.getProxyPassword()} $selfSignedCa"
     }
 
     fun getApplicationInfo(application: String): String = "which $application"
