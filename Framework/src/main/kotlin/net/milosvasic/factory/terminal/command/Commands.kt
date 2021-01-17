@@ -101,8 +101,23 @@ object Commands {
         } else {
             String.EMPTY
         }
+
+        val paramEmpty = "_empty"
+        val account = if (proxy.getProxyAccount() != String.EMPTY) {
+
+            proxy.getProxyAccount()
+        } else {
+            paramEmpty
+        }
+
+        val password = if (proxy.getProxyPassword() != String.EMPTY) {
+
+            proxy.getProxyPassword()
+        } else {
+            "_empty"
+        }
         return "$BASH $path ${proxy.getHost()} ${proxy.port} " +
-                "${proxy.getProxyAccount()} ${proxy.getProxyPassword()} $selfSignedCa"
+                "$account $password $selfSignedCa"
     }
 
     fun getApplicationInfo(application: String): String = "which $application"
