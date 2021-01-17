@@ -9,8 +9,8 @@ class Proxy(
     port: Int = 3128,
     hostIp: String? = "",
     account: String? = "",
-    val password: String? = ""
-
+    val password: String? = "",
+    private val selfSignedCA: Boolean? = false
 ) : Remote(
 
     host,
@@ -35,6 +35,15 @@ class Proxy(
             return password
         }
         return String.EMPTY
+    }
+
+    fun isSelfSignedCA(): Boolean {
+
+        selfSignedCA?.let {
+
+            return selfSignedCA
+        }
+        return false
     }
 
     override fun getHost(preferIpAddress: Boolean): String {
