@@ -14,8 +14,17 @@ open class Remote(
     protected var host: String?,
     protected var hostIp: String?,
     val port: Int,
-    @SerializedName("user") val account: String
+    @SerializedName("user") protected val account: String?
 ) {
+
+    fun getAccountName(): String {
+
+        account?.let {
+
+            return it
+        }
+        return String.EMPTY
+    }
 
     @Throws(IllegalStateException::class)
     open fun getHost(preferIpAddress: Boolean = true): String {

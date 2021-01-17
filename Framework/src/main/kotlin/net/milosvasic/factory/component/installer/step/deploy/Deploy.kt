@@ -161,8 +161,8 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
 
     protected open fun getSecurityChanges(remote: Remote): TerminalCommand {
 
-        val chown = Commands.chown(remote.account, where)
-        val chgrp = Commands.chgrp(remote.account, where)
+        val chown = Commands.chown(remote.getAccountName(), where)
+        val chgrp = Commands.chgrp(remote.getAccountName(), where)
         val permissions = Permissions(Permission.ALL, Permission.NONE, Permission.NONE)
         val chmod = Commands.chmod(where, permissions.obtain())
         return ConcatenateCommand(chown, chgrp, chmod)

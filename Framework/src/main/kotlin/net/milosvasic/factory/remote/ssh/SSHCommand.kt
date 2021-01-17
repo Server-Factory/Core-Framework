@@ -15,7 +15,7 @@ constructor(
 
     sshCommand: String = Commands.ssh(
 
-        remote.account,
+        remote.getAccountName(),
         if (remoteCommand is ObtainableTerminalCommand) {
 
             remoteCommand.obtainable.obtain().command
