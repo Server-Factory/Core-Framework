@@ -89,9 +89,13 @@ object Commands {
 
         val root = Variable.get(rootPath)
 
-        val path = FilePathBuilder()
+        val utilsRoot = FilePathBuilder()
             .addContext(root)
             .addContext(DIRECTORY_UTILS)
+            .build()
+
+        val path = FilePathBuilder()
+            .addContext(utilsRoot)
             .addContext(SCRIPT_INSTALL_PROXY)
             .build()
 
@@ -117,7 +121,7 @@ object Commands {
             "_empty"
         }
         return "$BASH $path ${proxy.getHost()} ${proxy.port} " +
-                "$account $password $selfSignedCa"
+                "$account $password $selfSignedCa $utilsRoot"
     }
 
     fun getApplicationInfo(application: String): String = "which $application"
