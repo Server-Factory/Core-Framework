@@ -1,10 +1,17 @@
 package net.milosvasic.factory.proxy
 
+import net.milosvasic.factory.common.filesystem.FilePathBuilder
 import net.milosvasic.factory.component.installer.step.RemoteOperationInstallationStep
+import net.milosvasic.factory.configuration.variable.Context
+import net.milosvasic.factory.configuration.variable.Key
+import net.milosvasic.factory.configuration.variable.PathBuilder
+import net.milosvasic.factory.configuration.variable.Variable
 import net.milosvasic.factory.execution.flow.implementation.CommandFlow
 import net.milosvasic.factory.log
 import net.milosvasic.factory.remote.Connection
 import net.milosvasic.factory.remote.ssh.SSH
+import net.milosvasic.factory.terminal.command.Commands
+import net.milosvasic.factory.terminal.command.MkdirCommand
 
 class ProxyInstallation(private val proxy: Proxy) : RemoteOperationInstallationStep<SSH>() {
 
@@ -17,10 +24,26 @@ class ProxyInstallation(private val proxy: Proxy) : RemoteOperationInstallationS
             val validator = ProxyValidator()
             if (validator.validate(proxy)) {
 
-                val cmd = ProxyInstallationCommand(proxy)
+                val rootPath = PathBuilder()
+                    .addContext(Context.Server)
+                    .setKey(Key.ServerHome)
+                    .build()
+
+                val root = Variable.get(rootPath)
+
+                val proxyRoot = FilePathBuilder()
+                    .addContext(root)
+                    .addContext(Commands.DIRECTORY_SERVER)
+                    .addContext(Commands.DIRECTORY_PROXY)
+                    .build()
+
+                val mkdir = MkdirCommand(proxyRoot)
+                val installProxy = ProxyInstallationCommand(proxy)
+
                 return CommandFlow()
                     .width(conn)
-                    .perform(cmd)
+                    .perform(mkdir)
+                    .perform(installProxy)
             } else {
 
                 throw IllegalArgumentException("Invalid proxy: ${proxy.print()}")

@@ -38,6 +38,8 @@ object Commands {
 
     const val DIRECTORY_CORE = "Core"
     const val DIRECTORY_UTILS = "Utils"
+    const val DIRECTORY_PROXY = "Proxy"
+    const val DIRECTORY_SERVER = "Server"
 
     private const val SCRIPT_GET_IP = "getip.sh"
     private const val SCRIPT_SET_HOSTNAME = "set_hostname.sh"
@@ -94,7 +96,13 @@ object Commands {
             .addContext(DIRECTORY_UTILS)
             .build()
 
-        val path = FilePathBuilder()
+        val proxyRoot = FilePathBuilder()
+            .addContext(root)
+            .addContext(DIRECTORY_SERVER)
+            .addContext(DIRECTORY_PROXY)
+            .build()
+
+        val scriptPath = FilePathBuilder()
             .addContext(utilsRoot)
             .addContext(SCRIPT_INSTALL_PROXY)
             .build()
@@ -120,8 +128,8 @@ object Commands {
         } else {
             "_empty"
         }
-        return "$BASH $path ${proxy.getHost()} ${proxy.port} " +
-                "$account $password $selfSignedCa $utilsRoot"
+        return "$BASH $scriptPath ${proxy.getHost()} ${proxy.port} " +
+                "$account $password $selfSignedCa $proxyRoot"
     }
 
     fun getApplicationInfo(application: String): String = "which $application"
