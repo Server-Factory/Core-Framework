@@ -1,5 +1,6 @@
 package net.milosvasic.factory.remote.ssh
 
+import net.milosvasic.factory.configuration.ConfigurationManager
 import net.milosvasic.factory.execution.flow.implementation.ObtainableTerminalCommand
 import net.milosvasic.factory.operation.command.CommandConfiguration
 import net.milosvasic.factory.remote.Remote
@@ -18,11 +19,23 @@ constructor(
         remote.getAccountName(),
         if (remoteCommand is ObtainableTerminalCommand) {
 
-            remoteCommand.obtainable.obtain().command
+            "${getCommandPrefix()}${remoteCommand.obtainable.obtain().command}"
         } else {
-            remoteCommand.command
+            "${getCommandPrefix()}${remoteCommand.command}"
         },
         remote.port,
         remote.getHost(preferIpAddress = false)
     )
-) : TerminalCommand(sshCommand, configuration)
+) : TerminalCommand(sshCommand, configuration) {
+
+    companion object {
+
+        fun getCommandPrefix(): String {
+
+            ConfigurationManager.getConfiguration().proxy?.let {
+                return "source /etc/profile; "
+            }
+            return ""
+        }
+    }
+}
