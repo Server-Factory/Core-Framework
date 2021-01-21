@@ -33,7 +33,7 @@ constructor(
         fun getCommandPrefix(): String {
 
             ConfigurationManager.getConfiguration().proxy?.let {
-                return "source /etc/profile; "
+                return "source /etc/profile >/dev/null 2>&1; "
             }
             return ""
         }
