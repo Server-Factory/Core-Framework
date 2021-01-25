@@ -128,8 +128,16 @@ object Commands {
         } else {
             "_empty"
         }
+
+        val certificateEndpoint = if (proxy.getCertificateEndpoint() != String.EMPTY) {
+
+            proxy.getCertificateEndpoint()
+        } else {
+            "_empty"
+        }
+
         return "$BASH $scriptPath ${proxy.getHost()} ${proxy.port} " +
-                "$account $password $selfSignedCa $proxyRoot"
+                "$account $password $selfSignedCa $proxyRoot $certificateEndpoint"
     }
 
     fun getApplicationInfo(application: String): String = "which $application"

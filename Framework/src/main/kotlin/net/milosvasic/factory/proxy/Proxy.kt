@@ -16,7 +16,7 @@ class Proxy(
     private val selfSignedCA: Boolean? = false,
 
     @SerializedName("certificate_endpoint")
-    val certificateEndpoint: String? = ""
+    private val certificateEndpoint: String? = ""
 ) : Remote(
 
     host,
@@ -39,6 +39,15 @@ class Proxy(
         password?.let {
 
             return password
+        }
+        return String.EMPTY
+    }
+
+    fun getCertificateEndpoint(): String {
+
+        certificateEndpoint?.let {
+
+            return certificateEndpoint
         }
         return String.EMPTY
     }
