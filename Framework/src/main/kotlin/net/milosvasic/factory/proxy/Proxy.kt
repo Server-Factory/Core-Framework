@@ -1,5 +1,6 @@
 package net.milosvasic.factory.proxy
 
+import com.google.gson.annotations.SerializedName
 import net.milosvasic.factory.EMPTY
 import net.milosvasic.factory.remote.Remote
 
@@ -10,7 +11,12 @@ class Proxy(
     hostIp: String? = "",
     account: String? = "",
     val password: String? = "",
-    private val selfSignedCA: Boolean? = false
+
+    @SerializedName("self_signed_ca")
+    private val selfSignedCA: Boolean? = false,
+
+    @SerializedName("certificate_endpoint")
+    val certificateEndpoint: String? = ""
 ) : Remote(
 
     host,
