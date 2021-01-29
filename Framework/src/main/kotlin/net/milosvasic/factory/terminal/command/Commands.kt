@@ -107,12 +107,7 @@ object Commands {
             .addContext(SCRIPT_INSTALL_PROXY)
             .build()
 
-        val selfSignedCa = if (proxy.isSelfSignedCA()) {
-
-            "true"
-        } else {
-            String.EMPTY
-        }
+        val selfSignedCa = proxy.isSelfSignedCA()
 
         val paramEmpty = "_empty"
         val account = if (proxy.getProxyAccount() != String.EMPTY) {
