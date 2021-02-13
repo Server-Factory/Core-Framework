@@ -44,6 +44,7 @@ class ProxyInstallation(private val proxy: Proxy) : RemoteOperationInstallationS
                     .width(conn)
                     .perform(mkdir)
                     .perform(installProxy)
+
             } else {
 
                 throw IllegalArgumentException("Invalid proxy: ${proxy.print()}")

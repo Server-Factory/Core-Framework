@@ -16,7 +16,9 @@ class Proxy(
     private val selfSignedCA: Boolean? = false,
 
     @SerializedName("certificate_endpoint")
-    private val certificateEndpoint: String? = ""
+    private val certificateEndpoint: String? = "",
+
+    private val refreshFrequency: Int? = DEFAULT_REFRESH_FREQUENCY
 ) : Remote(
 
     host,
@@ -24,6 +26,11 @@ class Proxy(
     port,
     account
 ) {
+
+    companion object {
+
+        const val DEFAULT_REFRESH_FREQUENCY = 900
+    }
 
     fun getProxyAccount(): String {
 
@@ -59,6 +66,15 @@ class Proxy(
             return selfSignedCA
         }
         return false
+    }
+
+    fun getRefreshFrequency(): Int {
+
+        refreshFrequency?.let {
+
+            return it
+        }
+        return DEFAULT_REFRESH_FREQUENCY
     }
 
     override fun getHost(preferIpAddress: Boolean): String {

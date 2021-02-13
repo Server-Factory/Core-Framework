@@ -216,7 +216,7 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
         }
         log.v("Processing prototype file: ${file.absolutePath}")
         val content = file.readText()
-        if (content.isNotEmpty() && !content.isBlank()) {
+        if (content.isNotEmpty() && content.isNotBlank()) {
             val parsedContent = Variable.parse(content)
             val destination = File(directory, getName(file))
             if (destination.exists()) {

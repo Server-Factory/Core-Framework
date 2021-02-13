@@ -10,6 +10,10 @@ interface Key {
             override fun key() = "HOME"
         }
 
+        val Account = object : Key {
+            override fun key() = "ACCOUNT"
+        }
+
         val ServerHome = object : Key {
             override fun key() = "SERVER_HOME"
         }
@@ -52,6 +56,18 @@ interface Key {
 
         val Password = object : Key {
             override fun key() = "PASSWORD"
+        }
+
+        val SelfSigned = object : Key {
+            override fun key() = "SELF_SIGNED"
+        }
+
+        val CaEndpoint = object : Key {
+            override fun key() = "CA_ENDPOINT"
+        }
+
+        val RefreshFrequency = object : Key {
+            override fun key() = "REFRESH_FREQUENCY"
         }
 
         val Passphrase = object : Key {

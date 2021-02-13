@@ -38,8 +38,8 @@ object Commands {
 
     const val DIRECTORY_CORE = "Core"
     const val DIRECTORY_UTILS = "Utils"
-    const val DIRECTORY_PROXY = "Proxy"
-    const val DIRECTORY_SERVER = "Server"
+    const val DIRECTORY_PROXY = "Proxy"   // TODO: MSF-413
+    const val DIRECTORY_SERVER = "Server" // TODO: MSF-413
 
     private const val SCRIPT_GET_IP = "getip.sh"
     private const val SCRIPT_SET_HOSTNAME = "set_hostname.sh"

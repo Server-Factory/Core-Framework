@@ -15,8 +15,6 @@ import net.milosvasic.factory.configuration.recipe.RawJsonConfigurationRecipe
 import net.milosvasic.factory.configuration.variable.*
 import net.milosvasic.factory.log
 import net.milosvasic.factory.platform.OperatingSystem
-import net.milosvasic.factory.proxy.Proxy
-import net.milosvasic.factory.proxy.ProxyValidator
 import net.milosvasic.factory.validation.JsonValidator
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
@@ -218,6 +216,7 @@ object ConfigurationManager : Initialization {
         }
     }
 
+    @Throws(IllegalStateException::class)
     private fun initializeSystemVariables(config: Configuration) {
 
         var node: Node? = null
@@ -264,6 +263,60 @@ object ConfigurationManager : Initialization {
 
             val systemNode = Node(name = ctxSystem.context(), children = systemVariables)
             node?.append(systemNode)
+        }
+
+        config.proxy?.let { proxy ->
+
+            val ctxProxy = Context.Proxy
+            val keyHost = Key.Host
+            val keyPort = Key.Port
+            val keyAccount = Key.Account
+            val keyPassword = Key.Password
+            val keySelfSigned = Key.SelfSigned
+            val keyCaEndpoint = Key.CaEndpoint
+            val keyRefreshFrequency = Key.RefreshFrequency
+
+            val proxyAccount = if (proxy.getProxyAccount().isEmpty()) {
+
+                Variable.EMPTY_VARIABLE
+            } else {
+                proxy.getProxyAccount()
+            }
+
+            val proxyPassword = if (proxy.getProxyPassword().isEmpty()) {
+
+                Variable.EMPTY_VARIABLE
+            } else {
+                proxy.getProxyPassword()
+            }
+
+            val proxyCertificateEndpoint = if (proxy.getCertificateEndpoint().isEmpty()) {
+
+                Variable.EMPTY_VARIABLE
+            } else {
+                proxy.getCertificateEndpoint()
+            }
+
+            val proxyVariables = mutableListOf<Node>()
+
+            val proxyPort = Node(name = keyPort.key(), value = proxy.port)
+            val proxyHost = Node(name = keyHost.key(), value = proxy.getHost())
+            val proxyAccountNode = Node(name = keyAccount.key(), value = proxyAccount)
+            val proxyPasswordNode = Node(name = keyPassword.key(), value = proxyPassword)
+            val proxySelfSigned = Node(name = keySelfSigned.key(), value = proxy.isSelfSignedCA())
+            val proxyCaEndpoint = Node(name = keyCaEndpoint.key(), value = proxyCertificateEndpoint)
+            val proxyRefreshFrequency = Node(name = keyRefreshFrequency.key(), value = proxy.getRefreshFrequency())
+
+            proxyVariables.add(proxyHost)
+            proxyVariables.add(proxyPort)
+            proxyVariables.add(proxyAccountNode)
+            proxyVariables.add(proxyPasswordNode)
+            proxyVariables.add(proxySelfSigned)
+            proxyVariables.add(proxyCaEndpoint)
+            proxyVariables.add(proxyRefreshFrequency)
+
+            val proxyNode = Node(name = ctxProxy.context(), children = proxyVariables)
+            node?.append(proxyNode)
         }
     }
 
