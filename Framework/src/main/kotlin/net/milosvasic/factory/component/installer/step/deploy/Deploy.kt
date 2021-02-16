@@ -36,6 +36,7 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
     private val excludes = listOf("$PROTOTYPE_PREFIX*")
 
     private val onDirectoryCreated = object : DataHandler<OperationResult> {
+
         override fun onData(data: OperationResult?) {
 
             if (data == null || !data.success) {
@@ -43,6 +44,7 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
                 finish(false)
                 return
             }
+
             if (whatFile.exists()) {
                 if (whatFile.isDirectory) {
                     try {
@@ -63,6 +65,7 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
                     finish(false)
                 }
             } else {
+
                 log.e("File does not exist: ${whatFile.absolutePath}")
                 finish(false)
             }
@@ -73,6 +76,7 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
     override fun getFlow(): CommandFlow {
 
         connection?.let { conn ->
+
             terminal = conn.getTerminal()
             remote = connection?.getRemote()
 
@@ -96,6 +100,7 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
                         .perform(RmCommand(getRemoteTar()))
 
                     try {
+
                         val protoCleanup = getProtoCleanup()
                         flow.perform(protoCleanup)
                     } catch (e: IllegalArgumentException) {
@@ -149,10 +154,13 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
     protected open fun getProtoCleanup(): TerminalCommand {
 
         if (excludes.isEmpty()) {
+
             throw IllegalArgumentException("No excludes available")
         }
+
         val excluded = mutableListOf<String>()
         excludes.forEach {
+
             val exclude = FindAndRemoveCommand(it, Commands.HERE)
             excluded.add(exclude.command)
         }
@@ -170,12 +178,16 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
 
     @Throws(IllegalStateException::class)
     private fun processFiles(directory: File) {
+
         val fileList = directory.listFiles()
         fileList?.let { files ->
             files.forEach { file ->
+
                 if (file.isDirectory) {
+
                     processFiles(file)
                 } else if (file.name.toLowerCase().startsWith(PROTOTYPE_PREFIX)) {
+
                     processFile(directory, file)
                 }
             }
@@ -184,12 +196,16 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
 
     @Throws(IllegalStateException::class)
     private fun cleanupFiles(directory: File) {
+
         val fileList = directory.listFiles()
         fileList?.let { files ->
             files.forEach { file ->
+
                 if (file.isDirectory) {
+
                     cleanupFiles(file)
                 } else if (file.name.toLowerCase().startsWith(PROTOTYPE_PREFIX)) {
+
                     val toRemove = File(directory, getName(file))
                     cleanupFile(toRemove)
                 }
@@ -198,33 +214,45 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
     }
 
     private fun cleanupFile(file: File) {
+
         if (file.exists()) {
             if (file.delete()) {
+
                 log.v("File is removed: ${file.absolutePath}")
             } else {
+
                 log.w("File could not be removed: ${file.absolutePath}")
             }
         } else {
+
             log.w("File does not exist: ${file.absolutePath}")
         }
     }
 
     @Throws(IllegalStateException::class)
     private fun processFile(directory: File, file: File) {
+
         if (!file.exists()) {
+
             throw IllegalStateException("File does not exist: ${file.absolutePath}")
         }
+
         log.v("Processing prototype file: ${file.absolutePath}")
         val content = file.readText()
         if (content.isNotEmpty() && content.isNotBlank()) {
+
             val parsedContent = Variable.parse(content)
             val destination = File(directory, getName(file))
+
             if (destination.exists()) {
+
                 throw IllegalStateException("Destination file already exist: ${destination.absolutePath}")
             } else {
                 if (destination.createNewFile()) {
+
                     destination.writeText(parsedContent)
                 } else {
+
                     throw IllegalStateException("Can't create destination file: ${destination.absolutePath}")
                 }
             }
