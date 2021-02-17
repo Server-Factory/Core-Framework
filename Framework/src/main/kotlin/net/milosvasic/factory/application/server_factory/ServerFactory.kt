@@ -432,7 +432,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
     ) = Deploy(what, where)
         .setConnection(ssh)
-        .getFlow()
+        .toCommandFlow()
 
     protected open fun getProxyInstallationFlow(ssh: Connection): CommandFlow {
 
@@ -441,7 +441,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
             return ProxyInstallation(proxy)
                 .setConnection(ssh)
-                .getFlow()
+                .toCommandFlow()
         }
         return CommandFlow()
             .width(ssh.getTerminal())

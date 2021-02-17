@@ -39,6 +39,7 @@ abstract class RemoteOperationInstallationStep<T : Connection> :
 
     @Synchronized
     override fun notify(data: OperationResult) {
+
         val iterator = subscribers.iterator()
         while (iterator.hasNext()) {
             val listener = iterator.next()
@@ -47,17 +48,24 @@ abstract class RemoteOperationInstallationStep<T : Connection> :
     }
 
     override fun subscribe(what: OperationResultListener) {
+
         subscribers.add(what)
     }
 
     override fun unsubscribe(what: OperationResultListener) {
+
         subscribers.remove(what)
     }
 
-    @Throws(IllegalArgumentException::class, IllegalStateException::class)
-    abstract fun getFlow(): CommandFlow
+    open fun toCommandFlow(): CommandFlow {
+
+        return getFlow()
+    }
 
     abstract fun getOperation(): Operation
+
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
+    protected abstract fun getFlow(): CommandFlow
 
     protected open fun finish(success: Boolean) {
 

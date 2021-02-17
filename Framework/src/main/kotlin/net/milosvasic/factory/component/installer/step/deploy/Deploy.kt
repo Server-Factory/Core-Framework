@@ -5,6 +5,7 @@ import net.milosvasic.factory.common.filesystem.FilePathBuilder
 import net.milosvasic.factory.common.obtain.Obtain
 import net.milosvasic.factory.component.installer.step.RemoteOperationInstallationStep
 import net.milosvasic.factory.configuration.variable.Variable
+import net.milosvasic.factory.execution.flow.callback.FlowCallback
 import net.milosvasic.factory.execution.flow.implementation.CommandFlow
 import net.milosvasic.factory.log
 import net.milosvasic.factory.operation.OperationResult
@@ -34,6 +35,14 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
     private var terminal: Terminal? = null
     private val tmpPath = tmpDirectory().absolutePath
     private val excludes = listOf("$PROTOTYPE_PREFIX*")
+
+    private val toCommandFlowCallback = object : FlowCallback {
+
+        override fun onFinish(success: Boolean) {
+
+            cleanupFiles(whatFile)
+        }
+    }
 
     private val onDirectoryCreated = object : DataHandler<OperationResult> {
 
@@ -118,6 +127,8 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
         }
         throw IllegalArgumentException("No proper connection provided")
     }
+
+    override fun toCommandFlow() = getFlow().onFinish(toCommandFlowCallback)
 
     override fun finish(success: Boolean) {
         try {
