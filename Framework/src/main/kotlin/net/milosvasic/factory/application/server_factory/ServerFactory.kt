@@ -430,7 +430,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
         where: String,
         ssh: Connection
 
-    ) = Deploy(what, where)
+    ) = Deploy(what, where, true)
         .setConnection(ssh)
         .toCommandFlow()
 

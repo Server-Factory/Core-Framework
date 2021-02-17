@@ -20,7 +20,13 @@ import net.milosvasic.factory.terminal.command.*
 import java.io.File
 import java.nio.file.InvalidPathException
 
-open class Deploy(what: String, private val where: String) : RemoteOperationInstallationStep<SSH>() {
+open class Deploy(
+
+    what: String,
+    private val where: String,
+    private val keepProtoFiles: Boolean = false
+
+) : RemoteOperationInstallationStep<SSH>() {
 
     companion object {
 
@@ -108,13 +114,18 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
                         .perform(UnTarCommand(getRemoteTar(), where))
                         .perform(RmCommand(getRemoteTar()))
 
-                    try {
+                    if (keepProtoFiles) {
 
-                        val protoCleanup = getProtoCleanup()
-                        flow.perform(protoCleanup)
-                    } catch (e: IllegalArgumentException) {
+                        log.v("Keeping proto files for: $where")
+                    } else {
+                        try {
 
-                        log.w(e)
+                            val protoCleanup = getProtoCleanup()
+                            flow.perform(protoCleanup)
+                        } catch (e: IllegalArgumentException) {
+
+                            log.w(e)
+                        }
                     }
 
                     return flow
