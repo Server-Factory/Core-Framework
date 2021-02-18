@@ -82,7 +82,7 @@ object Commands {
     }
 
     @Throws(InvalidPathException::class, IllegalStateException::class)
-    fun installProxy(proxy: Proxy): String {
+    fun installProxy(): String {
 
         val rootPath = PathBuilder()
             .addContext(Context.Server)
@@ -107,32 +107,7 @@ object Commands {
             .addContext(SCRIPT_INSTALL_PROXY)
             .build()
 
-        val selfSignedCa = proxy.isSelfSignedCA()
-
-        val paramEmpty = "_empty"
-        val account = if (proxy.getProxyAccount() != String.EMPTY) {
-
-            proxy.getProxyAccount()
-        } else {
-            paramEmpty
-        }
-
-        val password = if (proxy.getProxyPassword() != String.EMPTY) {
-
-            proxy.getProxyPassword()
-        } else {
-            "_empty"
-        }
-
-        val certificateEndpoint = if (proxy.getCertificateEndpoint() != String.EMPTY) {
-
-            proxy.getCertificateEndpoint()
-        } else {
-            "_empty"
-        }
-
-        return "$BASH $scriptPath ${proxy.getHost()} ${proxy.port} " +
-                "$account $password $selfSignedCa $proxyRoot $certificateEndpoint"
+        return "$BASH $scriptPath $proxyRoot"
     }
 
     fun getApplicationInfo(application: String): String = "which $application"

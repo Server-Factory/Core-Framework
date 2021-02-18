@@ -38,7 +38,7 @@ class ProxyInstallation(private val proxy: Proxy) : RemoteOperationInstallationS
                     .build()
 
                 val mkdir = MkdirCommand(proxyRoot)
-                val installProxy = ProxyInstallationCommand(proxy)
+                val installProxy = ProxyInstallationCommand()
 
                 return CommandFlow()
                     .width(conn)

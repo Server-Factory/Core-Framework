@@ -6,6 +6,6 @@ import java.nio.file.InvalidPathException
 
 class ProxyInstallationCommand
 @Throws(InvalidPathException::class, IllegalStateException::class)
-constructor(proxy: Proxy) :
+constructor() :
     @Throws(InvalidPathException::class, IllegalStateException::class)
-    TerminalCommand(Commands.installProxy(proxy))
+    TerminalCommand(Commands.installProxy())
