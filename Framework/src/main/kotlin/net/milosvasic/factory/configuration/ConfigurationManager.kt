@@ -313,6 +313,8 @@ object ConfigurationManager : Initialization {
             //  and returns String configuration:
             val proxyDockerEnvironment = Node(name = keyDockerEnvironment.key(), value = "TODO")
 
+            // TODO: Add .env file for each docker-composed service with mapping to: {{PROXY.DOCKER_ENVIRONMENT}}
+
             proxyVariables.add(proxyHost)
             proxyVariables.add(proxyPort)
             proxyVariables.add(proxyAccountNode)
