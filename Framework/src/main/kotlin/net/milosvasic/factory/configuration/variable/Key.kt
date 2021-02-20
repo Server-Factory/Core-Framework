@@ -70,6 +70,10 @@ interface Key {
             override fun key() = "REFRESH_FREQUENCY"
         }
 
+        val DockerEnvironment = object : Key {
+            override fun key() = "DOCKER_ENVIRONMENT"
+        }
+
         val Passphrase = object : Key {
             override fun key() = "PASSPHRASE"
         }

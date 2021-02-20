@@ -265,9 +265,11 @@ object ConfigurationManager : Initialization {
             node?.append(systemNode)
         }
 
+        val ctxProxy = Context.Proxy
+        val keyDockerEnvironment = Key.DockerEnvironment
+
         config.proxy?.let { proxy ->
 
-            val ctxProxy = Context.Proxy
             val keyHost = Key.Host
             val keyPort = Key.Port
             val keyAccount = Key.Account
@@ -307,6 +309,10 @@ object ConfigurationManager : Initialization {
             val proxyCaEndpoint = Node(name = keyCaEndpoint.key(), value = proxyCertificateEndpoint)
             val proxyRefreshFrequency = Node(name = keyRefreshFrequency.key(), value = proxy.getRefreshFrequency())
 
+            // TODO: Some Docker class with function that accepts Proxy as parameter
+            //  and returns String configuration:
+            val proxyDockerEnvironment = Node(name = keyDockerEnvironment.key(), value = "TODO")
+
             proxyVariables.add(proxyHost)
             proxyVariables.add(proxyPort)
             proxyVariables.add(proxyAccountNode)
@@ -314,7 +320,17 @@ object ConfigurationManager : Initialization {
             proxyVariables.add(proxySelfSigned)
             proxyVariables.add(proxyCaEndpoint)
             proxyVariables.add(proxyRefreshFrequency)
+            proxyVariables.add(proxyDockerEnvironment)
 
+            val proxyNode = Node(name = ctxProxy.context(), children = proxyVariables)
+            node?.append(proxyNode)
+        }
+
+        if (config.proxy == null) {
+
+            val proxyVariables = mutableListOf<Node>()
+            val proxyDockerEnvironment = Node(name = keyDockerEnvironment.key(), value = Variable.EMPTY_VARIABLE)
+            proxyVariables.add(proxyDockerEnvironment)
             val proxyNode = Node(name = ctxProxy.context(), children = proxyVariables)
             node?.append(proxyNode)
         }
