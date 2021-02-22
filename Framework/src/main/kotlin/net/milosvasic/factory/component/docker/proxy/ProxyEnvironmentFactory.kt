@@ -1,5 +1,6 @@
 package net.milosvasic.factory.component.docker.proxy
 
+import net.milosvasic.factory.EMPTY
 import net.milosvasic.factory.common.obtain.ObtainParametrized
 import net.milosvasic.factory.proxy.Proxy
 import net.milosvasic.factory.proxy.ProxyValidator
@@ -16,10 +17,18 @@ class ProxyEnvironmentFactory : ObtainParametrized<Proxy, String> {
         val validator = ProxyValidator()
         if (validator.validate(proxy)) {
 
+            var credentials = String.EMPTY
+            if (proxy.getProxyAccount() != String.EMPTY && proxy.password != String.EMPTY) {
+
+                credentials = "${proxy.getProxyAccount()}:${proxy.getProxyPassword()}@"
+            }
+
+            val url = "http://$credentials${proxy.getHost()}:${proxy.port}"
+
             return StringBuilder()
-                .append("HTTP_PROXY=")
-                .append("HTTPS_PROXY=")
-                .append("FTP_PROXY=")
+                .append("HTTP_PROXY=$url")
+                .append("HTTPS_PROXY=$url")
+                .append("FTP_PROXY=$url")
                 .toString()
         }
         throw IllegalArgumentException("Invalid Proxy")
