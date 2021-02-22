@@ -26,8 +26,8 @@ class ProxyEnvironmentFactory : ObtainParametrized<Proxy, String> {
             val url = "http://$credentials${proxy.getHost()}:${proxy.port}"
 
             return StringBuilder()
-                .append("HTTP_PROXY=$url")
-                .append("HTTPS_PROXY=$url")
+                .append("HTTP_PROXY=$url\n")
+                .append("HTTPS_PROXY=$url\n")
                 .append("FTP_PROXY=$url")
                 .toString()
         }
