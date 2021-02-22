@@ -336,9 +336,6 @@ object ConfigurationManager : Initialization {
             proxyVariables.add(proxyRefreshFrequency)
             proxyVariables.add(proxyDockerEnvironment)
 
-            // TODO: Configure Docker client: ~/.docker/config.json
-            // TODO: Add Proxy .crt into the trusted ones (inside the containers)
-
             val proxyNode = Node(name = ctxProxy.context(), children = proxyVariables)
             node?.append(proxyNode)
         }
