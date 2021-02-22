@@ -52,6 +52,7 @@ object ConfigurationManager : Initialization {
             configuration?.let {
 
                 initializeSystemVariables(it)
+                initializeProxyVariables(it)
             }
             BusyWorker.free(busy)
         }
@@ -264,6 +265,18 @@ object ConfigurationManager : Initialization {
 
             val systemNode = Node(name = ctxSystem.context(), children = systemVariables)
             node?.append(systemNode)
+        }
+    }
+
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
+    private fun initializeProxyVariables(config: Configuration) {
+
+        var node: Node? = null
+        config.variables?.let {
+            node = it
+        }
+        if (node == null) {
+            node = Node()
         }
 
         val ctxProxy = Context.Proxy
