@@ -232,15 +232,15 @@ object ConfigurationManager : Initialization {
         val ctxInstallation = Context.Installation
 
         val pathSystemHome = PathBuilder()
-                .addContext(ctxSystem)
-                .setKey(keyHome)
-                .build()
+            .addContext(ctxSystem)
+            .setKey(keyHome)
+            .build()
 
         val pathSystemInstallationHome = PathBuilder()
-                .addContext(ctxSystem)
-                .addContext(ctxInstallation)
-                .setKey(keyHome)
-                .build()
+            .addContext(ctxSystem)
+            .addContext(ctxInstallation)
+            .setKey(keyHome)
+            .build()
 
         val systemHomeVariable = checkAndGetVariable(pathSystemHome)
         val systemInstallationHomeVariable = checkAndGetVariable(pathSystemInstallationHome)
@@ -321,6 +321,9 @@ object ConfigurationManager : Initialization {
             proxyVariables.add(proxyCaEndpoint)
             proxyVariables.add(proxyRefreshFrequency)
             proxyVariables.add(proxyDockerEnvironment)
+
+            // TODO: Configure Docker client: ~/.docker/config.json
+            // TODO: Add Proxy .crt into the trusted ones (inside the containers)
 
             val proxyNode = Node(name = ctxProxy.context(), children = proxyVariables)
             node?.append(proxyNode)

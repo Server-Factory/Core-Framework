@@ -1,14 +1,14 @@
 package net.milosvasic.factory.component.docker.proxy
 
-import net.milosvasic.factory.EMPTY
 import net.milosvasic.factory.common.obtain.ObtainParametrized
 import net.milosvasic.factory.proxy.Proxy
 import net.milosvasic.factory.proxy.ProxyValidator
 import net.milosvasic.factory.validation.Validator
+import java.lang.StringBuilder
 
 class ProxyEnvironmentFactory : ObtainParametrized<Proxy, String> {
 
-    @Throws(IllegalArgumentException::class)
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
     override fun obtain(vararg param: Proxy): String {
 
         Validator.Arguments.validateSingle(param)
@@ -16,8 +16,11 @@ class ProxyEnvironmentFactory : ObtainParametrized<Proxy, String> {
         val validator = ProxyValidator()
         if (validator.validate(proxy)) {
 
-            // TODO:
-            return String.EMPTY
+            return StringBuilder()
+                .append("HTTP_PROXY=")
+                .append("HTTPS_PROXY=")
+                .append("FTP_PROXY=")
+                .toString()
         }
         throw IllegalArgumentException("Invalid Proxy")
     }
