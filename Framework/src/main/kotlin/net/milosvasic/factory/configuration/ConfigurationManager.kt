@@ -6,6 +6,7 @@ import net.milosvasic.factory.common.busy.Busy
 import net.milosvasic.factory.common.busy.BusyWorker
 import net.milosvasic.factory.common.filesystem.FilePathBuilder
 import net.milosvasic.factory.common.initialization.Initialization
+import net.milosvasic.factory.component.docker.proxy.ProxyEnvironmentFactory
 import net.milosvasic.factory.configuration.definition.Definition
 import net.milosvasic.factory.configuration.definition.provider.DefinitionProvider
 import net.milosvasic.factory.configuration.definition.provider.FilesystemDefinitionProvider
@@ -216,7 +217,7 @@ object ConfigurationManager : Initialization {
         }
     }
 
-    @Throws(IllegalStateException::class)
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
     private fun initializeSystemVariables(config: Configuration) {
 
         var node: Node? = null
@@ -309,9 +310,9 @@ object ConfigurationManager : Initialization {
             val proxyCaEndpoint = Node(name = keyCaEndpoint.key(), value = proxyCertificateEndpoint)
             val proxyRefreshFrequency = Node(name = keyRefreshFrequency.key(), value = proxy.getRefreshFrequency())
 
-            // TODO: Some Docker class with function that accepts Proxy as parameter
-            //  and returns String configuration:
-            val proxyDockerEnvironment = Node(name = keyDockerEnvironment.key(), value = "TODO")
+            val factory = ProxyEnvironmentFactory()
+            val proxyEnvironment = factory.obtain(proxy)
+            val proxyDockerEnvironment = Node(name = keyDockerEnvironment.key(), value = proxyEnvironment)
 
             proxyVariables.add(proxyHost)
             proxyVariables.add(proxyPort)
