@@ -517,13 +517,4 @@ object ConfigurationManager : Initializer, BusyDelegation {
         val result = OperationResult(initializationOperation, true)
         notify(result)
     }
-
-    @Synchronized
-    private fun notifyInit(e: Exception) {
-
-        free()
-        log.e(e)
-        val result = OperationResult(initializationOperation, false)
-        notify(result)
-    }
 }
