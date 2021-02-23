@@ -26,9 +26,14 @@ class ProxyEnvironmentFactory : ObtainParametrized<Proxy, String> {
             val url = "http://$credentials${proxy.getHost()}:${proxy.port}"
 
             return StringBuilder()
-                .append("HTTP_PROXY=$url\n")
-                .append("HTTPS_PROXY=$url\n")
-                .append("FTP_PROXY=$url")
+                .append("http_proxy=\"$url\"\n")
+                .append("https_proxy=\"$url\"\n")
+                .append("ftp_proxy=\"$url\"\n")
+                .append("no_proxy=\"127.0.0.1,localhost\"\n")
+                .append("HTTP_PROXY=\"$url\"\n")
+                .append("HTTPS_PROXY=\"$url\"\n")
+                .append("FTP_PROXY=\"$url\"\n")
+                .append("NO_PROXY=\"127.0.0.1,localhost\"")
                 .toString()
         }
         throw IllegalArgumentException("Invalid Proxy")
