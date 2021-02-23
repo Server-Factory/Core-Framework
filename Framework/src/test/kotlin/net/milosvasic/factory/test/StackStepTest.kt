@@ -3,6 +3,7 @@ package net.milosvasic.factory.test
 import net.milosvasic.factory.application.server_factory.ServerFactoryBuilder
 import net.milosvasic.factory.common.busy.BusyException
 import net.milosvasic.factory.component.installer.step.factory.InstallationStepFactories
+import net.milosvasic.factory.configuration.ConfigurationManager
 import net.milosvasic.factory.configuration.recipe.FileConfigurationRecipe
 import net.milosvasic.factory.error.ERROR
 import net.milosvasic.factory.execution.flow.callback.FlowCallback
@@ -41,7 +42,7 @@ class StackStepTest : BaseTest() {
         val recipe = FileConfigurationRecipe(file)
         val builder = ServerFactoryBuilder().setRecipe(recipe)
         val factory = StubServerFactory(builder)
-        factory.setConnectionProvider(connectionProvider)
+        ConfigurationManager.setConnectionProvider(connectionProvider)
 
         val callback = object : FlowCallback {
             override fun onFinish(success: Boolean) {

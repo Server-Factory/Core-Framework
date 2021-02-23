@@ -77,13 +77,14 @@ class Proxy(
         return DEFAULT_REFRESH_FREQUENCY
     }
 
-    override fun getHost(preferIpAddress: Boolean): String {
+    override fun getHostname(): String? {
 
         host?.let {
+
             return it
         }
-        throw IllegalStateException("Host information unavailable")
+        return null
     }
 
-    fun print() = "Proxy(host=$host, port=$port, account=$account, password=$password)"
+    fun print() = "Proxy(host=$host, hostIp=$hostIp, port=$port, account=$account, password=$password)"
 }

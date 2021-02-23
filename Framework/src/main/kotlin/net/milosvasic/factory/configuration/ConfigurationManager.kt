@@ -3,9 +3,11 @@ package net.milosvasic.factory.configuration
 import net.milosvasic.factory.DIRECTORY_DEFAULT_INSTALLATION_LOCATION
 import net.milosvasic.factory.EMPTY
 import net.milosvasic.factory.common.busy.Busy
+import net.milosvasic.factory.common.busy.BusyDelegation
+import net.milosvasic.factory.common.busy.BusyException
 import net.milosvasic.factory.common.busy.BusyWorker
 import net.milosvasic.factory.common.filesystem.FilePathBuilder
-import net.milosvasic.factory.common.initialization.Initialization
+import net.milosvasic.factory.common.initialization.Initializer
 import net.milosvasic.factory.component.docker.proxy.ProxyEnvironmentFactory
 import net.milosvasic.factory.configuration.definition.Definition
 import net.milosvasic.factory.configuration.definition.provider.DefinitionProvider
@@ -14,13 +16,23 @@ import net.milosvasic.factory.configuration.recipe.ConfigurationRecipe
 import net.milosvasic.factory.configuration.recipe.FileConfigurationRecipe
 import net.milosvasic.factory.configuration.recipe.RawJsonConfigurationRecipe
 import net.milosvasic.factory.configuration.variable.*
+import net.milosvasic.factory.execution.flow.implementation.CommandFlow
 import net.milosvasic.factory.log
+import net.milosvasic.factory.operation.OperationResult
+import net.milosvasic.factory.operation.OperationResultListener
+import net.milosvasic.factory.platform.HostIpAddressDataHandler
 import net.milosvasic.factory.platform.OperatingSystem
+import net.milosvasic.factory.remote.Connection
+import net.milosvasic.factory.remote.ConnectionProvider
+import net.milosvasic.factory.remote.ssh.SSH
+import net.milosvasic.factory.terminal.command.IpAddressObtainCommand
 import net.milosvasic.factory.validation.JsonValidator
+import net.milosvasic.factory.validation.networking.IPV4Validator
 import java.io.File
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 
-object ConfigurationManager : Initialization {
+object ConfigurationManager : Initializer, BusyDelegation {
 
     private val busy = Busy()
     private var loaded = AtomicBoolean()
@@ -28,15 +40,36 @@ object ConfigurationManager : Initialization {
     private var configuration: Configuration? = null
     private var recipe: ConfigurationRecipe<*>? = null
     private lateinit var definitionProvider: DefinitionProvider
+    private val connectionPool = mutableMapOf<String, Connection>()
     private var configurationFactory: ConfigurationFactory<*>? = null
     private var configurations = mutableListOf<SoftwareConfiguration>()
+    private val subscribers = ConcurrentLinkedQueue<OperationResultListener>()
     private var installationLocation = DIRECTORY_DEFAULT_INSTALLATION_LOCATION
+    private val initializationOperation = ConfigurationManagerInitializationOperation()
+
+    private var connectionProvider: ConnectionProvider = object : ConnectionProvider {
+
+        @Throws(IllegalArgumentException::class)
+        override fun obtain(): Connection {
+            configuration?.let { config ->
+
+                val key = config.remote.toString()
+                connectionPool[key]?.let {
+                    return it
+                }
+                val connection = SSH(config.remote)
+                connectionPool[key] = connection
+                return connection
+            }
+            throw IllegalArgumentException("No valid configuration available for creating a connection")
+        }
+    }
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
     override fun initialize() {
 
         checkInitialized()
-        BusyWorker.busy(busy)
+        busy()
         if (configurationFactory == null) {
 
             throw IllegalStateException("Configuration factory was not provided")
@@ -52,9 +85,13 @@ object ConfigurationManager : Initialization {
             configuration?.let {
 
                 initializeSystemVariables(it)
-                initializeProxyVariables(it)
+
+                val callback = Runnable {
+
+                    notifyInit()
+                }
+                initializeProxyVariables(it, callback)
             }
-            BusyWorker.free(busy)
         }
     }
 
@@ -172,6 +209,49 @@ object ConfigurationManager : Initialization {
         installationLocation = location
     }
 
+    fun setConnectionProvider(provider: ConnectionProvider) {
+
+        connectionProvider = provider
+    }
+
+    @Throws(IllegalArgumentException::class)
+    fun getConnection() = connectionProvider.obtain()
+
+    @Synchronized
+    @Throws(BusyException::class)
+    override fun busy() {
+
+        BusyWorker.busy(busy)
+    }
+
+    @Synchronized
+    override fun free() {
+
+        BusyWorker.free(busy)
+    }
+
+    @Synchronized
+    override fun notify(data: OperationResult) {
+
+        val iterator = subscribers.iterator()
+        while (iterator.hasNext()) {
+            val listener = iterator.next()
+            listener.onOperationPerformed(data)
+        }
+    }
+
+    fun isBusy() = busy.isBusy()
+
+    override fun subscribe(what: OperationResultListener) {
+
+        subscribers.add(what)
+    }
+
+    override fun unsubscribe(what: OperationResultListener) {
+
+        subscribers.remove(what)
+    }
+
     private fun printVariableNode(variableNode: Node?, prefix: String = String.EMPTY) {
 
         val prefixEnd = "-> "
@@ -269,7 +349,7 @@ object ConfigurationManager : Initialization {
     }
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
-    private fun initializeProxyVariables(config: Configuration) {
+    private fun initializeProxyVariables(config: Configuration, callback: Runnable) {
 
         var node: Node? = null
         config.variables?.let {
@@ -282,64 +362,6 @@ object ConfigurationManager : Initialization {
         val ctxProxy = Context.Proxy
         val keyDockerEnvironment = Key.DockerEnvironment
 
-        config.proxy?.let { proxy ->
-
-            val keyHost = Key.Host
-            val keyPort = Key.Port
-            val keyAccount = Key.Account
-            val keyPassword = Key.Password
-            val keySelfSigned = Key.SelfSigned
-            val keyCaEndpoint = Key.CaEndpoint
-            val keyRefreshFrequency = Key.RefreshFrequency
-
-            val proxyAccount = if (proxy.getProxyAccount().isEmpty()) {
-
-                Variable.EMPTY_VARIABLE
-            } else {
-                proxy.getProxyAccount()
-            }
-
-            val proxyPassword = if (proxy.getProxyPassword().isEmpty()) {
-
-                Variable.EMPTY_VARIABLE
-            } else {
-                proxy.getProxyPassword()
-            }
-
-            val proxyCertificateEndpoint = if (proxy.getCertificateEndpoint().isEmpty()) {
-
-                Variable.EMPTY_VARIABLE
-            } else {
-                proxy.getCertificateEndpoint()
-            }
-
-            val proxyVariables = mutableListOf<Node>()
-
-            val proxyPort = Node(name = keyPort.key(), value = proxy.port)
-            val proxyHost = Node(name = keyHost.key(), value = proxy.getHost())
-            val proxyAccountNode = Node(name = keyAccount.key(), value = proxyAccount)
-            val proxyPasswordNode = Node(name = keyPassword.key(), value = proxyPassword)
-            val proxySelfSigned = Node(name = keySelfSigned.key(), value = proxy.isSelfSignedCA())
-            val proxyCaEndpoint = Node(name = keyCaEndpoint.key(), value = proxyCertificateEndpoint)
-            val proxyRefreshFrequency = Node(name = keyRefreshFrequency.key(), value = proxy.getRefreshFrequency())
-
-            val factory = ProxyEnvironmentFactory()
-            val proxyEnvironment = factory.obtain(proxy)
-            val proxyDockerEnvironment = Node(name = keyDockerEnvironment.key(), value = proxyEnvironment)
-
-            proxyVariables.add(proxyHost)
-            proxyVariables.add(proxyPort)
-            proxyVariables.add(proxyAccountNode)
-            proxyVariables.add(proxyPasswordNode)
-            proxyVariables.add(proxySelfSigned)
-            proxyVariables.add(proxyCaEndpoint)
-            proxyVariables.add(proxyRefreshFrequency)
-            proxyVariables.add(proxyDockerEnvironment)
-
-            val proxyNode = Node(name = ctxProxy.context(), children = proxyVariables)
-            node?.append(proxyNode)
-        }
-
         if (config.proxy == null) {
 
             val proxyVariables = mutableListOf<Node>()
@@ -347,6 +369,120 @@ object ConfigurationManager : Initialization {
             proxyVariables.add(proxyDockerEnvironment)
             val proxyNode = Node(name = ctxProxy.context(), children = proxyVariables)
             node?.append(proxyNode)
+
+            callback.run()
+            return
+        }
+
+        config.proxy?.let { proxy ->
+
+            fun initProxyVariables() {
+
+                val keyHost = Key.Host
+                val keyPort = Key.Port
+                val keyAccount = Key.Account
+                val keyPassword = Key.Password
+                val keySelfSigned = Key.SelfSigned
+                val keyCaEndpoint = Key.CaEndpoint
+                val keyRefreshFrequency = Key.RefreshFrequency
+
+                val proxyAccount = if (proxy.getProxyAccount().isEmpty()) {
+
+                    Variable.EMPTY_VARIABLE
+                } else {
+                    proxy.getProxyAccount()
+                }
+
+                val proxyPassword = if (proxy.getProxyPassword().isEmpty()) {
+
+                    Variable.EMPTY_VARIABLE
+                } else {
+                    proxy.getProxyPassword()
+                }
+
+                val proxyCertificateEndpoint = if (proxy.getCertificateEndpoint().isEmpty()) {
+
+                    Variable.EMPTY_VARIABLE
+                } else {
+                    proxy.getCertificateEndpoint()
+                }
+
+                val proxyVariables = mutableListOf<Node>()
+
+                val proxyPort = Node(name = keyPort.key(), value = proxy.port)
+                val proxyHost = Node(name = keyHost.key(), value = proxy.getHost())
+                val proxyAccountNode = Node(name = keyAccount.key(), value = proxyAccount)
+                val proxyPasswordNode = Node(name = keyPassword.key(), value = proxyPassword)
+                val proxySelfSigned = Node(name = keySelfSigned.key(), value = proxy.isSelfSignedCA())
+                val proxyCaEndpoint = Node(name = keyCaEndpoint.key(), value = proxyCertificateEndpoint)
+                val proxyRefreshFrequency = Node(name = keyRefreshFrequency.key(), value = proxy.getRefreshFrequency())
+
+                val factory = ProxyEnvironmentFactory()
+                val proxyEnvironment = factory.obtain(proxy)
+                val proxyDockerEnvironment = Node(name = keyDockerEnvironment.key(), value = proxyEnvironment)
+
+                proxyVariables.add(proxyHost)
+                proxyVariables.add(proxyPort)
+                proxyVariables.add(proxyAccountNode)
+                proxyVariables.add(proxyPasswordNode)
+                proxyVariables.add(proxySelfSigned)
+                proxyVariables.add(proxyCaEndpoint)
+                proxyVariables.add(proxyRefreshFrequency)
+                proxyVariables.add(proxyDockerEnvironment)
+
+                val proxyNode = Node(name = ctxProxy.context(), children = proxyVariables)
+                node?.append(proxyNode)
+
+                callback.run()
+            }
+
+            val host = proxy.getHost(preferIpAddress = false)
+            val ip4Validator = IPV4Validator()
+
+            val behaviorPath = PathBuilder()
+                .addContext(Context.Behavior)
+                .setKey(Key.GetIp)
+                .build()
+
+            var behaviorGetIp = false
+            val msg = "Get IP behavior setting"
+            try {
+
+                behaviorGetIp = Variable.get(behaviorPath).toBoolean()
+                log.v("$msg (1): $behaviorGetIp")
+            } catch (e: IllegalStateException) {
+
+                log.v("$msg (2): $behaviorGetIp")
+            }
+
+            if (ip4Validator.validate(host)) {
+
+                initProxyVariables()
+            } else {
+
+                if (behaviorGetIp) {
+
+                    val connection = getConnection()
+                    val cmd = IpAddressObtainCommand(host)
+                    val handler = object : HostIpAddressDataHandler(proxy) {
+
+                        @Throws(IllegalArgumentException::class)
+                        override fun onData(data: OperationResult?) {
+                            super.onData(data)
+
+                            initProxyVariables()
+                        }
+                    }
+
+                    CommandFlow()
+                        .width(connection.getTerminal())
+                        .perform(cmd, handler)
+                        .run()
+                } else {
+
+                    initProxyVariables()
+                }
+            }
         }
     }
 
@@ -373,5 +509,21 @@ object ConfigurationManager : Initialization {
             systemHome = File(installationLocation)
         }
         return systemHome
+    }
+
+    private fun notifyInit() {
+
+        free()
+        val result = OperationResult(initializationOperation, true)
+        notify(result)
+    }
+
+    @Synchronized
+    private fun notifyInit(e: Exception) {
+
+        free()
+        log.e(e)
+        val result = OperationResult(initializationOperation, false)
+        notify(result)
     }
 }

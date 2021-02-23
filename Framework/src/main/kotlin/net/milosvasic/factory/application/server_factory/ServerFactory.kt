@@ -1,6 +1,7 @@
 package net.milosvasic.factory.application.server_factory
 
 import net.milosvasic.factory.*
+import net.milosvasic.factory.application.DefaultInitializationHandler
 import net.milosvasic.factory.common.Application
 import net.milosvasic.factory.common.busy.Busy
 import net.milosvasic.factory.common.busy.BusyDelegation
@@ -38,8 +39,6 @@ import net.milosvasic.factory.operation.OperationResultListener
 import net.milosvasic.factory.platform.*
 import net.milosvasic.factory.proxy.ProxyInstallation
 import net.milosvasic.factory.remote.Connection
-import net.milosvasic.factory.remote.ConnectionProvider
-import net.milosvasic.factory.remote.ssh.SSH
 import net.milosvasic.factory.terminal.TerminalCommand
 import net.milosvasic.factory.terminal.command.*
 import java.awt.HeadlessException
@@ -59,49 +58,16 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
     private var behaviorGetIp = false
     private val executor = TaskExecutor.instantiate(5)
     private val terminators = ConcurrentLinkedQueue<Termination>()
-    private val connectionPool = mutableMapOf<String, Connection>()
     private var configurations = mutableListOf<SoftwareConfiguration>()
     private val terminationOperation = ServerFactoryTerminationOperation()
     private val subscribers = ConcurrentLinkedQueue<OperationResultListener>()
     private val initializationOperation = ServerFactoryInitializationOperation()
 
-    private var connectionProvider: ConnectionProvider = object : ConnectionProvider {
+    private val configurationManagerInitCallback = object : FlowCallback {
+        override fun onFinish(success: Boolean) {
 
-        @Throws(IllegalArgumentException::class)
-        override fun obtain(): Connection {
-            configuration?.let { config ->
-
-                val key = config.remote.toString()
-                connectionPool[key]?.let {
-                    return it
-                }
-                val connection = SSH(config.remote)
-                connectionPool[key] = connection
-                return connection
-            }
-            throw IllegalArgumentException("No valid configuration available for creating a connection")
-        }
-    }
-
-    @Throws(IllegalStateException::class, IllegalArgumentException::class)
-    override fun initialize() {
-
-        checkInitialized()
-        busy()
-        try {
-
-            tag = getLogTag()
-            builder.getLogger()?.let {
-
-                compositeLogger.addLogger(it)
-            }
-            featureDatabase = builder.getFeatureDatabase()
-            try {
-
-                ConfigurationManager.setConfigurationRecipe(builder.getRecipe())
-                ConfigurationManager.setConfigurationFactory(getConfigurationFactory())
-                ConfigurationManager.setInstallationLocation(builder.getInstallationLocation())
-                ConfigurationManager.initialize()
+            if (success) {
+                log.i("Configuration manager is initialized")
 
                 configuration = ConfigurationManager.getConfiguration()
                 if (configuration == null) {
@@ -147,6 +113,46 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
                 getCommandFlow(ssh, DieOnFailureCallback())
                     .onFinish(callback)
                     .run()
+            } else {
+
+                val error = IllegalStateException("Configuration manager was not initialized")
+                notifyInit(error)
+            }
+        }
+    }
+
+    @Throws(IllegalStateException::class, IllegalArgumentException::class)
+    override fun initialize() {
+
+        checkInitialized()
+        busy()
+        try {
+
+            tag = getLogTag()
+            builder.getLogger()?.let {
+
+                compositeLogger.addLogger(it)
+            }
+            featureDatabase = builder.getFeatureDatabase()
+            try {
+
+                ConfigurationManager.setConfigurationRecipe(builder.getRecipe())
+                ConfigurationManager.setConfigurationFactory(getConfigurationFactory())
+                ConfigurationManager.setInstallationLocation(builder.getInstallationLocation())
+
+                val handler = DefaultInitializationHandler()
+                try {
+
+                    InitializationFlow()
+                        .width(ConfigurationManager)
+                        .handler(handler)
+                        .onFinish(configurationManagerInitCallback)
+                        .run()
+
+                } catch (e: BusyException) {
+
+                    notifyInit(e)
+                }
             } catch (e: IllegalArgumentException) {
 
                 notifyInit(e)
@@ -165,6 +171,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
     @Throws(IllegalStateException::class)
     override fun terminate() {
+
         checkNotInitialized()
         if (!busy.isBusy()) {
             throw IllegalStateException("Server factory is not running")
@@ -184,6 +191,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
     @Synchronized
     override fun isInitialized(): Boolean {
         try {
+
             ConfigurationManager.getConfiguration()
             return true
         } catch (e: IllegalStateException) {
@@ -194,6 +202,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
     @Throws(IllegalStateException::class)
     override fun run() {
+
         checkNotInitialized()
         busy()
         if (configuration == null) {
@@ -243,11 +252,13 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
     @Synchronized
     @Throws(BusyException::class)
     override fun busy() {
+
         BusyWorker.busy(busy)
     }
 
     @Synchronized
     override fun free() {
+
         BusyWorker.free(busy)
     }
 
@@ -256,6 +267,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
     @Synchronized
     @Throws(IllegalStateException::class)
     override fun checkInitialized() {
+
         if (ConfigurationManager.isInitialized()) {
             throw IllegalStateException("Server factory has been already initialized")
         }
@@ -264,21 +276,25 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
     @Synchronized
     @Throws(IllegalStateException::class)
     override fun checkNotInitialized() {
+
         if (!ConfigurationManager.isInitialized()) {
             throw IllegalStateException("Server factory has not been initialized")
         }
     }
 
     override fun subscribe(what: OperationResultListener) {
+
         subscribers.add(what)
     }
 
     override fun unsubscribe(what: OperationResultListener) {
+
         subscribers.remove(what)
     }
 
     @Synchronized
     override fun notify(data: OperationResult) {
+
         val iterator = subscribers.iterator()
         while (iterator.hasNext()) {
             val listener = iterator.next()
@@ -286,14 +302,10 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
         }
     }
 
-    fun setConnectionProvider(provider: ConnectionProvider) {
-        connectionProvider = provider
-    }
-
     protected abstract fun getConfigurationFactory(): ConfigurationFactory<*>
 
     @Throws(IllegalArgumentException::class)
-    protected fun getConnection() = connectionProvider.obtain()
+    protected fun getConnection() = ConfigurationManager.getConnection()
 
     protected open fun getLogTag() = tag
 

@@ -7,7 +7,6 @@ import net.milosvasic.factory.configuration.variable.Context
 import net.milosvasic.factory.configuration.variable.Key
 import net.milosvasic.factory.configuration.variable.PathBuilder
 import net.milosvasic.factory.configuration.variable.Variable
-import net.milosvasic.factory.log
 
 open class Remote(
 
@@ -27,7 +26,7 @@ open class Remote(
     }
 
     @Throws(IllegalStateException::class)
-    open fun getHost(preferIpAddress: Boolean = true): String {
+    fun getHost(preferIpAddress: Boolean = true): String {
 
         val behaviorGetIp = behaviorGetIp()
         if (behaviorGetIp && preferIpAddress && hostIp == null) {
@@ -45,8 +44,6 @@ open class Remote(
         return LOCALHOST
     }
 
-
-
     @Throws(IllegalArgumentException::class)
     fun setHostIpAddress(hostIp: String) {
 
@@ -57,7 +54,7 @@ open class Remote(
         this.hostIp = hostIp
     }
 
-    private fun getHostname(): String? {
+    protected open fun getHostname(): String? {
 
         host?.let { return it }
 
@@ -83,14 +80,12 @@ open class Remote(
             .build()
 
         var behaviorGetIp = false
-        val msg = "Get IP behavior setting"
         try {
 
             behaviorGetIp = Variable.get(behaviorPath).toBoolean()
-            log.v("$msg (1): $behaviorGetIp")
         } catch (e: IllegalStateException) {
 
-            log.v("$msg (2): $behaviorGetIp")
+            // Ignore
         }
         return behaviorGetIp
     }
