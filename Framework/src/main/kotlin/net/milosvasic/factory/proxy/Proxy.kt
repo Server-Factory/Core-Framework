@@ -95,5 +95,5 @@ class Proxy(
         throw IllegalStateException("No host name available")
     }
 
-    fun print() = "Proxy(host=$host, hostIp=$hostIp, port=$port, account=$account, password=$password)"
+    fun print() = "Proxy(hostname=$host, hostIp=$hostIp, port=$port, account=$account, password=$password)"
 }
