@@ -86,5 +86,14 @@ class Proxy(
         return null
     }
 
+    fun getProxyHostname(): String {
+
+        host?.let {
+
+            return it
+        }
+        throw IllegalStateException("No host name available")
+    }
+
     fun print() = "Proxy(host=$host, hostIp=$hostIp, port=$port, account=$account, password=$password)"
 }

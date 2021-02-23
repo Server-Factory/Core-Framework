@@ -379,11 +379,13 @@ object ConfigurationManager : Initializer, BusyDelegation {
 
         config.proxy?.let { proxy ->
 
+            @Throws(IllegalStateException::class, )
             fun initProxyVariables() {
 
                 val keyHost = Key.Host
                 val keyPort = Key.Port
                 val keyAccount = Key.Account
+                val keyHostName = Key.Hostname
                 val keyPassword = Key.Password
                 val keySelfSigned = Key.SelfSigned
                 val keyCaEndpoint = Key.CaEndpoint
@@ -414,6 +416,7 @@ object ConfigurationManager : Initializer, BusyDelegation {
 
                 val proxyPort = Node(name = keyPort.key(), value = proxy.port)
                 val proxyHost = Node(name = keyHost.key(), value = proxy.getHost())
+                val proxyHostName = Node(name = keyHostName.key(), value = proxy.getProxyHostname())
                 val proxyAccountNode = Node(name = keyAccount.key(), value = proxyAccount)
                 val proxyPasswordNode = Node(name = keyPassword.key(), value = proxyPassword)
                 val proxySelfSigned = Node(name = keySelfSigned.key(), value = proxy.isSelfSignedCA())
@@ -424,8 +427,9 @@ object ConfigurationManager : Initializer, BusyDelegation {
                 val proxyEnvironment = factory.obtain(proxy)
                 val proxyDockerEnvironment = Node(name = keyDockerEnvironment.key(), value = proxyEnvironment)
 
-                proxyVariables.add(proxyHost)
                 proxyVariables.add(proxyPort)
+                proxyVariables.add(proxyHost)
+                proxyVariables.add(proxyHostName)
                 proxyVariables.add(proxyAccountNode)
                 proxyVariables.add(proxyPasswordNode)
                 proxyVariables.add(proxySelfSigned)
@@ -469,7 +473,7 @@ object ConfigurationManager : Initializer, BusyDelegation {
                     val cmd = IpAddressObtainCommand(host)
                     val handler = object : HostIpAddressDataHandler(proxy) {
 
-                        @Throws(IllegalArgumentException::class)
+                        @Throws(IllegalStateException::class, IllegalArgumentException::class)
                         override fun onData(data: OperationResult?) {
                             super.onData(data)
 
