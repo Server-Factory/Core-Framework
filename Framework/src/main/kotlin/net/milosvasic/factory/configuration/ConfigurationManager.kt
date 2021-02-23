@@ -364,8 +364,11 @@ object ConfigurationManager : Initializer, BusyDelegation {
 
         if (config.proxy == null) {
 
+            val factory = ProxyEnvironmentFactory()
+            val proxyEnvironment = factory.obtainEmpty()
+
             val proxyVariables = mutableListOf<Node>()
-            val proxyDockerEnvironment = Node(name = keyDockerEnvironment.key(), value = Variable.EMPTY_VARIABLE)
+            val proxyDockerEnvironment = Node(name = keyDockerEnvironment.key(), value = proxyEnvironment)
             proxyVariables.add(proxyDockerEnvironment)
             val proxyNode = Node(name = ctxProxy.context(), children = proxyVariables)
             node?.append(proxyNode)
