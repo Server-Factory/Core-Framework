@@ -1,4 +1,4 @@
-package net.milosvasic.factory.component.docker.proxy
+package net.milosvasic.factory.component.docker.environment
 
 import net.milosvasic.factory.EMPTY
 import net.milosvasic.factory.common.obtain.ObtainParametrized
@@ -7,7 +7,7 @@ import net.milosvasic.factory.proxy.ProxyValidator
 import net.milosvasic.factory.validation.Validator
 import java.lang.StringBuilder
 
-class ProxyEnvironmentFactory : ObtainParametrized<Proxy, String> {
+class ProxyEnvironmentVariablesFactory : ObtainParametrized<Proxy, String> {
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
     override fun obtain(vararg param: Proxy): String {
