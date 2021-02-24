@@ -9,6 +9,8 @@ import net.milosvasic.logger.FilesystemLogger
 import kotlin.system.exitProcess
 
 const val LOCALHOST = "127.0.0.1"
+const val LOCALHOST_NAME = "localhost"
+
 const val FILE_LOCATION_HERE = "."
 const val DIRECTORY_DEFAULT_INSTALLATION_LOCATION = "/usr/local/bin"
 

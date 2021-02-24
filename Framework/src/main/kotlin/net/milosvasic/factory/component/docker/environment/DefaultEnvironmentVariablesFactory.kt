@@ -6,6 +6,6 @@ import java.lang.StringBuilder
 class DefaultEnvironmentVariablesFactory : Obtain<String> {
 
     override fun obtain() = StringBuilder()
-        .append("factory_service=true")
+        .append("${EnvironmentVariables.FactoryService.variableName}=true")
         .toString()
 }

@@ -1,6 +1,8 @@
 package net.milosvasic.factory.component.docker.environment
 
 import net.milosvasic.factory.EMPTY
+import net.milosvasic.factory.LOCALHOST
+import net.milosvasic.factory.LOCALHOST_NAME
 import net.milosvasic.factory.common.obtain.ObtainParametrized
 import net.milosvasic.factory.proxy.Proxy
 import net.milosvasic.factory.proxy.ProxyValidator
@@ -32,13 +34,13 @@ class ProxyEnvironmentVariablesFactory : ObtainParametrized<Proxy, String> {
     fun obtainEmpty() = getVariables("")
 
     private fun getVariables(url: String) = StringBuilder()
-        .append("http_proxy=\"$url\"\n")
-        .append("https_proxy=\"$url\"\n")
-        .append("ftp_proxy=\"$url\"\n")
-        .append("no_proxy=\"127.0.0.1,localhost\"\n")
-        .append("HTTP_PROXY=\"$url\"\n")
-        .append("HTTPS_PROXY=\"$url\"\n")
-        .append("FTP_PROXY=\"$url\"\n")
-        .append("NO_PROXY=\"127.0.0.1,localhost\"")
+        .append("${EnvironmentVariables.HttpProxy.variableName}=\"$url\"\n")
+        .append("${EnvironmentVariables.HttpsProxy.variableName}=\"$url\"\n")
+        .append("${EnvironmentVariables.FtpProxy.variableName}=\"$url\"\n")
+        .append("${EnvironmentVariables.NoProxy.variableName}=\"$LOCALHOST,$LOCALHOST_NAME\"\n")
+        .append("${EnvironmentVariables.HttpProxy.variableName.toUpperCase()}=\"$url\"\n")
+        .append("${EnvironmentVariables.HttpsProxy.variableName.toUpperCase()}=\"$url\"\n")
+        .append("${EnvironmentVariables.FtpProxy.variableName.toUpperCase()}=\"$url\"\n")
+        .append("${EnvironmentVariables.NoProxy.variableName.toUpperCase()}=\"$LOCALHOST,$LOCALHOST_NAME\"")
         .toString()
 }
