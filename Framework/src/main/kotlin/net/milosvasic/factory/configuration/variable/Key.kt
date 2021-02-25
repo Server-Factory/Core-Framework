@@ -10,6 +10,10 @@ interface Key {
             override fun key() = "HOME"
         }
 
+        val UtilsHome = object : Key {
+            override fun key() = "UTILS_HOME"
+        }
+
         val Account = object : Key {
             override fun key() = "ACCOUNT"
         }

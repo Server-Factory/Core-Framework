@@ -8,7 +8,6 @@ import net.milosvasic.factory.common.busy.BusyException
 import net.milosvasic.factory.common.busy.BusyWorker
 import net.milosvasic.factory.common.filesystem.FilePathBuilder
 import net.milosvasic.factory.common.initialization.Initializer
-import net.milosvasic.factory.component.docker.environment.ProxyEnvironmentVariablesFactory
 import net.milosvasic.factory.component.docker.environment.DefaultEnvironmentVariablesFactory
 import net.milosvasic.factory.configuration.definition.Definition
 import net.milosvasic.factory.configuration.definition.provider.DefinitionProvider
@@ -26,6 +25,7 @@ import net.milosvasic.factory.platform.OperatingSystem
 import net.milosvasic.factory.remote.Connection
 import net.milosvasic.factory.remote.ConnectionProvider
 import net.milosvasic.factory.remote.ssh.SSH
+import net.milosvasic.factory.terminal.command.Commands
 import net.milosvasic.factory.terminal.command.IpAddressObtainCommand
 import net.milosvasic.factory.validation.JsonValidator
 import net.milosvasic.factory.validation.networking.IPV4Validator
@@ -350,6 +350,18 @@ object ConfigurationManager : Initializer, BusyDelegation {
             val systemNode = Node(name = ctxSystem.context(), children = systemVariables)
             node?.append(systemNode)
         }
+
+        val systemHome = Variable.get(pathSystemHome)
+
+        val utilsPath = FilePathBuilder()
+            .addContext(systemHome)
+            .addContext(Commands.DIRECTORY_CORE)
+            .addContext(Commands.DIRECTORY_UTILS)
+            .build()
+
+        val utilsHome = Key.UtilsHome
+        val systemUtilsNode = Node(name = utilsHome.key(), value = utilsPath)
+        systemVariables.add(systemUtilsNode)
     }
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
@@ -392,18 +404,8 @@ object ConfigurationManager : Initializer, BusyDelegation {
         }
 
         val ctxProxy = Context.Proxy
-        val keyDockerEnvironment = Key.DockerEnvironment
 
         if (config.proxy == null) {
-
-            val factory = ProxyEnvironmentVariablesFactory()
-            val proxyEnvironment = factory.obtainEmpty()
-
-            val proxyVariables = mutableListOf<Node>()
-            val proxyDockerEnvironment = Node(name = keyDockerEnvironment.key(), value = proxyEnvironment)
-            proxyVariables.add(proxyDockerEnvironment)
-            val proxyNode = Node(name = ctxProxy.context(), children = proxyVariables)
-            node?.append(proxyNode)
 
             callback.run()
             return
@@ -455,10 +457,6 @@ object ConfigurationManager : Initializer, BusyDelegation {
                 val proxyCaEndpoint = Node(name = keyCaEndpoint.key(), value = proxyCertificateEndpoint)
                 val proxyRefreshFrequency = Node(name = keyRefreshFrequency.key(), value = proxy.getRefreshFrequency())
 
-                val factory = ProxyEnvironmentVariablesFactory()
-                val proxyEnvironment = factory.obtain(proxy)
-                val proxyDockerEnvironment = Node(name = keyDockerEnvironment.key(), value = proxyEnvironment)
-
                 proxyVariables.add(proxyPort)
                 proxyVariables.add(proxyHost)
                 proxyVariables.add(proxyHostName)
@@ -467,7 +465,6 @@ object ConfigurationManager : Initializer, BusyDelegation {
                 proxyVariables.add(proxySelfSigned)
                 proxyVariables.add(proxyCaEndpoint)
                 proxyVariables.add(proxyRefreshFrequency)
-                proxyVariables.add(proxyDockerEnvironment)
 
                 val proxyNode = Node(name = ctxProxy.context(), children = proxyVariables)
                 node?.append(proxyNode)
