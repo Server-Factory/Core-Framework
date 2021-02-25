@@ -351,11 +351,15 @@ object ConfigurationManager : Initializer, BusyDelegation {
             node?.append(systemNode)
         }
 
-        val systemHome = Variable.get(pathSystemHome)
+        val rootPath = PathBuilder()
+            .addContext(Context.Server)
+            .setKey(Key.ServerHome)
+            .build()
+
+        val root = Variable.get(rootPath)
 
         val utilsPath = FilePathBuilder()
-            .addContext(systemHome)
-            .addContext(Commands.DIRECTORY_CORE)
+            .addContext(root)
             .addContext(Commands.DIRECTORY_UTILS)
             .build()
 

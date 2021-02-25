@@ -21,8 +21,8 @@ class DefaultEnvironmentVariablesFactory : Obtain<String> {
         val utilsHome = Variable.get(utilsPath)
 
         return StringBuilder()
-            .append("${EnvironmentVariables.FactoryService.variableName}=true")
-            .append("${EnvironmentVariables.UtilsHome.variableName}=$utilsHome")
+            .append("${EnvironmentVariables.FACTORY_SERVICE_FLAG.variableName}=true\n")
+            .append("${EnvironmentVariables.UTILS_HOME.variableName}=$utilsHome")
             .toString()
     }
 }
