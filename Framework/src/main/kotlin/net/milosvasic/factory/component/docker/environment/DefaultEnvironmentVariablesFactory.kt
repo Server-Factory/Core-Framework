@@ -21,7 +21,9 @@ class DefaultEnvironmentVariablesFactory : Obtain<String> {
         val utilsHome = Variable.get(utilsPath)
 
         return StringBuilder()
+            .append("${EnvironmentVariables.FACTORY_SERVICE_FLAG.variableName.toLowerCase()}=true\n")
             .append("${EnvironmentVariables.FACTORY_SERVICE_FLAG.variableName}=true\n")
+            .append("${EnvironmentVariables.UTILS_HOME.variableName.toLowerCase()}=$utilsHome\n")
             .append("${EnvironmentVariables.UTILS_HOME.variableName}=$utilsHome")
             .toString()
     }
