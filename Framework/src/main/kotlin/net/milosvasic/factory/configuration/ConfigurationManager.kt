@@ -8,7 +8,7 @@ import net.milosvasic.factory.common.busy.BusyException
 import net.milosvasic.factory.common.busy.BusyWorker
 import net.milosvasic.factory.common.filesystem.FilePathBuilder
 import net.milosvasic.factory.common.initialization.Initializer
-import net.milosvasic.factory.component.docker.environment.DefaultEnvironmentVariablesFactory
+import net.milosvasic.factory.component.docker.environment.DockerDefaultEnvironmentVariablesFactory
 import net.milosvasic.factory.configuration.definition.Definition
 import net.milosvasic.factory.configuration.definition.provider.DefinitionProvider
 import net.milosvasic.factory.configuration.definition.provider.FilesystemDefinitionProvider
@@ -385,7 +385,7 @@ object ConfigurationManager : Initializer, BusyDelegation {
         val keyDockerEnvironment = Key.DockerEnvironment
 
         val dockerVariables = mutableListOf<Node>()
-        val factory = DefaultEnvironmentVariablesFactory()
+        val factory = DockerDefaultEnvironmentVariablesFactory()
         val environmentVariables = factory.obtain()
         val dockerEnvironment = Node(name = keyDockerEnvironment.key(), value = environmentVariables)
         dockerVariables.add(dockerEnvironment)

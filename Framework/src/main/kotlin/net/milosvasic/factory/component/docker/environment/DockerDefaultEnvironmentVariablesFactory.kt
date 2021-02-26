@@ -8,7 +8,7 @@ import net.milosvasic.factory.configuration.variable.Variable
 import java.lang.StringBuilder
 import kotlin.jvm.Throws
 
-class DefaultEnvironmentVariablesFactory : Obtain<String> {
+class DockerDefaultEnvironmentVariablesFactory : Obtain<String> {
 
     @Throws(IllegalStateException::class)
     override fun obtain(): String {
@@ -21,10 +21,8 @@ class DefaultEnvironmentVariablesFactory : Obtain<String> {
         val utilsHome = Variable.get(utilsPath)
 
         return StringBuilder()
-            .append("${EnvironmentVariables.FACTORY_SERVICE_FLAG.variableName.toLowerCase()}=true\n")
             .append("${EnvironmentVariables.FACTORY_SERVICE_FLAG.variableName}=true\n")
-            .append("${EnvironmentVariables.UTILS_HOME.variableName.toLowerCase()}=$utilsHome\n")
-            .append("${EnvironmentVariables.UTILS_HOME.variableName}=$utilsHome")
+            .append("${EnvironmentVariables.UTILS_HOME.variableName}=\"$utilsHome\"")
             .toString()
     }
 }
