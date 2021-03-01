@@ -11,10 +11,10 @@
   "variables": {
     "SERVER": {
       "HOSTNAME": "localhost",
-      "SERVER_HOME": "/stub"
+      "HOME": "/stub"
     },
     "DOCKER": {
-      "DOCKER_COMPOSE_PATH": "/usr/local/bin"
+      "COMPOSE_PATH": "/usr/local/bin"
     }
   }
 }

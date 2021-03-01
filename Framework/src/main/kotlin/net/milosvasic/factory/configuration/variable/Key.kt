@@ -18,16 +18,8 @@ interface Key {
             override fun key() = "ACCOUNT"
         }
 
-        val ServerHome = object : Key {
-            override fun key() = "SERVER_HOME"
-        }
-
-        val DockerHome = object : Key {
-            override fun key() = "DOCKER_HOME"
-        }
-
         val DockerComposePath = object : Key {
-            override fun key() = "DOCKER_COMPOSE_PATH"
+            override fun key() = "COMPOSE_PATH"
         }
 
         val Type = object : Key {
@@ -72,10 +64,6 @@ interface Key {
 
         val RefreshFrequency = object : Key {
             override fun key() = "REFRESH_FREQUENCY"
-        }
-
-        val DockerEnvironment = object : Key {
-            override fun key() = "DOCKER_ENVIRONMENT"
         }
 
         val Passphrase = object : Key {

@@ -5,8 +5,10 @@ import net.milosvasic.factory.common.filesystem.FilePathBuilder
 import net.milosvasic.factory.common.obtain.Obtain
 import net.milosvasic.factory.component.installer.step.RemoteOperationInstallationStep
 import net.milosvasic.factory.configuration.variable.Variable
+import net.milosvasic.factory.error.ERROR
 import net.milosvasic.factory.execution.flow.callback.FlowCallback
 import net.milosvasic.factory.execution.flow.implementation.CommandFlow
+import net.milosvasic.factory.fail
 import net.milosvasic.factory.log
 import net.milosvasic.factory.operation.OperationResult
 import net.milosvasic.factory.remote.Connection
@@ -150,6 +152,10 @@ open class Deploy(
 
             log.e(e)
             super.finish(false)
+        }
+        if (!success) {
+
+            fail(ERROR.RUNTIME_ERROR)
         }
     }
 

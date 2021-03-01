@@ -8,7 +8,6 @@ import net.milosvasic.factory.configuration.variable.Context
 import net.milosvasic.factory.configuration.variable.Key
 import net.milosvasic.factory.configuration.variable.PathBuilder
 import net.milosvasic.factory.configuration.variable.Variable
-import net.milosvasic.factory.proxy.Proxy
 import net.milosvasic.factory.remote.Remote
 import java.nio.file.InvalidPathException
 
@@ -86,7 +85,7 @@ object Commands {
 
         val rootPath = PathBuilder()
             .addContext(Context.Server)
-            .setKey(Key.ServerHome)
+            .setKey(Key.Home)
             .build()
 
         val root = Variable.get(rootPath)
@@ -171,7 +170,7 @@ object Commands {
 
         val path = PathBuilder()
             .addContext(Context.Server)
-            .setKey(Key.ServerHome)
+            .setKey(Key.Home)
             .build()
 
         val serverHome = Variable.get(path)
@@ -328,7 +327,7 @@ object Commands {
 
         val serverHomePath = PathBuilder()
             .addContext(Context.Server)
-            .setKey(Key.ServerHome)
+            .setKey(Key.Home)
             .build()
 
         val serverHome = Variable.get(serverHomePath)

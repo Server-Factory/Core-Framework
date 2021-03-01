@@ -1,5 +1,6 @@
 package net.milosvasic.factory.remote.ssh
 
+import net.milosvasic.factory.EMPTY
 import net.milosvasic.factory.configuration.ConfigurationManager
 import net.milosvasic.factory.execution.flow.implementation.ObtainableTerminalCommand
 import net.milosvasic.factory.operation.command.CommandConfiguration
@@ -32,10 +33,15 @@ constructor(
 
         fun getCommandPrefix(): String {
 
-            ConfigurationManager.getConfiguration().proxy?.let {
-                return "source /etc/profile >/dev/null 2>&1; "
+            val proxy = ConfigurationManager.getConfiguration().getProxy()
+            return try {
+
+                proxy.getProxyHostname()
+                "source /etc/profile >/dev/null 2>&1; "
+            } catch (e: IllegalStateException) {
+
+                String.EMPTY
             }
-            return ""
         }
     }
 }

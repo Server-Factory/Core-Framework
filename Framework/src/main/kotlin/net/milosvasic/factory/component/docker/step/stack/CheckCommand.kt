@@ -7,14 +7,14 @@ import net.milosvasic.factory.configuration.variable.PathBuilder
 import net.milosvasic.factory.configuration.variable.Variable
 import net.milosvasic.factory.terminal.TerminalCommand
 
-class CheckCommand(containerName: String, val timeout: Int) :
+class CheckCommand(containerName: String, timeout: Int) :
         TerminalCommand("${getCommand()} $containerName $timeout")
 
 private fun getCommand(): String {
 
     val serverHomePath = PathBuilder()
             .addContext(Context.Server)
-            .setKey(Key.ServerHome)
+            .setKey(Key.Home)
             .build()
 
     val serverHome = Variable.get(serverHomePath)

@@ -446,18 +446,15 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
         .setConnection(ssh)
         .toCommandFlow()
 
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
     protected open fun getProxyInstallationFlow(ssh: Connection): CommandFlow {
 
         val conf = ConfigurationManager.getConfiguration()
-        conf.proxy?.let { proxy ->
+        val proxy = conf.getProxy()
 
-            return ProxyInstallation(proxy)
-                .setConnection(ssh)
-                .toCommandFlow()
-        }
-        return CommandFlow()
-            .width(ssh.getTerminal())
-            .perform(EchoCommand("No Proxy configuration provided"))
+        return ProxyInstallation(proxy)
+            .setConnection(ssh)
+            .toCommandFlow()
     }
 
     protected open fun getIpAddressObtainCommand(os: OperatingSystem) =
@@ -510,7 +507,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
         /*
          * {
          *  "type": "deploy",
-         *  "value": "{{SYSTEM.HOME}}/Core/Utils:{{SERVER.SERVER_HOME}}/Utils"
+         *  "value": "{{SYSTEM.HOME}}/Core/Utils:{{SERVER.HOME}}/Utils"
          * }
          */
         val systemHomePath = PathBuilder()
@@ -528,7 +525,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
         val whereRootPath = PathBuilder()
             .addContext(Context.Server)
-            .setKey(Key.ServerHome)
+            .setKey(Key.Home)
             .build()
 
         val whereRoot = Variable.get(whereRootPath)

@@ -301,15 +301,7 @@ object ConfigurationManager : Initializer, BusyDelegation {
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
     private fun initializeSystemVariables(config: Configuration) {
 
-        var node: Node? = null
-        config.variables?.let {
-            node = it
-        }
-        if (node == null) {
-
-            node = Node()
-            config.variables = node
-        }
+        val node = getVariablesRootNode(config)
 
         val keyHome = Key.Home
         val ctxSystem = Context.System
@@ -351,7 +343,7 @@ object ConfigurationManager : Initializer, BusyDelegation {
 
         val rootPath = PathBuilder()
             .addContext(Context.Server)
-            .setKey(Key.ServerHome)
+            .setKey(Key.Home)
             .build()
 
         val root = Variable.get(rootPath)
@@ -369,86 +361,99 @@ object ConfigurationManager : Initializer, BusyDelegation {
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
     private fun initializeProxyVariables(config: Configuration, callback: Runnable) {
 
-        var node: Node? = null
-        config.variables?.let {
-            node = it
-        }
-        if (node == null) {
-
-            node = Node()
-            config.variables = node
-        }
-
+        val keyHome = Key.Home
         val ctxProxy = Context.Proxy
 
-        if (config.proxy == null) {
+        val proxyVariables = mutableListOf<Node>()
 
-            callback.run()
-            return
-        }
+        val rootPath = PathBuilder()
+            .addContext(Context.Server)
+            .setKey(Key.Home)
+            .build()
 
-        config.proxy?.let { proxy ->
+        val root = Variable.get(rootPath)
 
-            @Throws(IllegalStateException::class, )
-            fun initProxyVariables() {
+        val home = FilePathBuilder()
+            .addContext(root)
+            .addContext(Commands.DIRECTORY_SERVER)
+            .addContext(Commands.DIRECTORY_PROXY)
+            .build()
 
-                val keyHost = Key.Host
-                val keyPort = Key.Port
-                val keyAccount = Key.Account
-                val keyHostName = Key.Hostname
-                val keyPassword = Key.Password
-                val keySelfSigned = Key.SelfSigned
-                val keyCaEndpoint = Key.CaEndpoint
-                val keyRefreshFrequency = Key.RefreshFrequency
+        val proxyHome = Node(name = keyHome.key(), value = home)
+        proxyVariables.add(proxyHome)
 
-                val proxyAccount = if (proxy.getProxyAccount().isEmpty()) {
+        val proxyNode = Node(name = ctxProxy.context(), children = proxyVariables)
+        val node = getVariablesRootNode(config)
+        node?.append(proxyNode)
 
-                    Variable.EMPTY_VARIABLE
-                } else {
-                    proxy.getProxyAccount()
-                }
+        val proxy = config.getProxy()
 
-                val proxyPassword = if (proxy.getProxyPassword().isEmpty()) {
+        @Throws(IllegalStateException::class, )
+        fun initProxyVariables() {
 
-                    Variable.EMPTY_VARIABLE
-                } else {
-                    proxy.getProxyPassword()
-                }
+            val keyHost = Key.Host
+            val keyPort = Key.Port
+            val keyAccount = Key.Account
+            val keyHostName = Key.Hostname
+            val keyPassword = Key.Password
+            val keySelfSigned = Key.SelfSigned
+            val keyCaEndpoint = Key.CaEndpoint
+            val keyRefreshFrequency = Key.RefreshFrequency
 
-                val proxyCertificateEndpoint = if (proxy.getCertificateEndpoint().isEmpty()) {
+            val proxyAccount = if (proxy.getProxyAccount().isEmpty()) {
 
-                    Variable.EMPTY_VARIABLE
-                } else {
-                    proxy.getCertificateEndpoint()
-                }
-
-                val proxyVariables = mutableListOf<Node>()
-
-                val proxyPort = Node(name = keyPort.key(), value = proxy.port)
-                val proxyHost = Node(name = keyHost.key(), value = proxy.getHost())
-                val proxyHostName = Node(name = keyHostName.key(), value = proxy.getProxyHostname())
-                val proxyAccountNode = Node(name = keyAccount.key(), value = proxyAccount)
-                val proxyPasswordNode = Node(name = keyPassword.key(), value = proxyPassword)
-                val proxySelfSigned = Node(name = keySelfSigned.key(), value = proxy.isSelfSignedCA())
-                val proxyCaEndpoint = Node(name = keyCaEndpoint.key(), value = proxyCertificateEndpoint)
-                val proxyRefreshFrequency = Node(name = keyRefreshFrequency.key(), value = proxy.getRefreshFrequency())
-
-                proxyVariables.add(proxyPort)
-                proxyVariables.add(proxyHost)
-                proxyVariables.add(proxyHostName)
-                proxyVariables.add(proxyAccountNode)
-                proxyVariables.add(proxyPasswordNode)
-                proxyVariables.add(proxySelfSigned)
-                proxyVariables.add(proxyCaEndpoint)
-                proxyVariables.add(proxyRefreshFrequency)
-
-                val proxyNode = Node(name = ctxProxy.context(), children = proxyVariables)
-                node?.append(proxyNode)
-
-                callback.run()
+                Variable.EMPTY_VARIABLE
+            } else {
+                proxy.getProxyAccount()
             }
 
-            val host = proxy.getHost(preferIpAddress = false)
+            val proxyPassword = if (proxy.getProxyPassword().isEmpty()) {
+
+                Variable.EMPTY_VARIABLE
+            } else {
+                proxy.getProxyPassword()
+            }
+
+            val proxyCertificateEndpoint = if (proxy.getCertificateEndpoint().isEmpty()) {
+
+                Variable.EMPTY_VARIABLE
+            } else {
+                proxy.getCertificateEndpoint()
+            }
+
+            var proxyHostname = Variable.EMPTY_VARIABLE
+            try {
+
+                proxyHostname = proxy.getProxyHostname()
+            } catch (e: IllegalStateException) {
+
+                // Ignore.
+            }
+
+            val proxyPort = Node(name = keyPort.key(), value = proxy.port)
+            val proxyHost = Node(name = keyHost.key(), value = proxy.getHost())
+            val proxyHostName = Node(name = keyHostName.key(), value = proxyHostname)
+            val proxyAccountNode = Node(name = keyAccount.key(), value = proxyAccount)
+            val proxyPasswordNode = Node(name = keyPassword.key(), value = proxyPassword)
+            val proxySelfSigned = Node(name = keySelfSigned.key(), value = proxy.isSelfSignedCA())
+            val proxyCaEndpoint = Node(name = keyCaEndpoint.key(), value = proxyCertificateEndpoint)
+            val proxyRefreshFrequency = Node(name = keyRefreshFrequency.key(), value = proxy.getRefreshFrequency())
+
+            proxyVariables.add(proxyPort)
+            proxyVariables.add(proxyHost)
+            proxyVariables.add(proxyHostName)
+            proxyVariables.add(proxyAccountNode)
+            proxyVariables.add(proxyPasswordNode)
+            proxyVariables.add(proxySelfSigned)
+            proxyVariables.add(proxyCaEndpoint)
+            proxyVariables.add(proxyRefreshFrequency)
+
+            callback.run()
+        }
+
+        try {
+
+            val host = proxy.getProxyHostname()
             val ip4Validator = IPV4Validator()
 
             val behaviorPath = PathBuilder()
@@ -495,6 +500,9 @@ object ConfigurationManager : Initializer, BusyDelegation {
                     initProxyVariables()
                 }
             }
+        } catch (e: IllegalStateException) {
+
+            initProxyVariables()
         }
     }
 
@@ -528,5 +536,20 @@ object ConfigurationManager : Initializer, BusyDelegation {
         free()
         val result = OperationResult(initializationOperation, true)
         notify(result)
+    }
+
+    private fun getVariablesRootNode(config: Configuration): Node? {
+
+        var node: Node? = null
+        config.variables?.let {
+
+            node = it
+        }
+        if (node == null) {
+
+            node = Node()
+            config.variables = node
+        }
+        return node
     }
 }

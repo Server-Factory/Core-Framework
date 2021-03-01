@@ -36,7 +36,7 @@ abstract class Configuration(
     enabled
 ) {
 
-    var proxy: Proxy? = null
+    private var proxy: Proxy? = null
 
     companion object {
 
@@ -106,6 +106,14 @@ abstract class Configuration(
                 }
             }
         }
+    }
+
+    fun getProxy(): Proxy {
+
+        proxy?.let {
+            return it
+        }
+        return Proxy()
     }
 
     override fun toString(): String {

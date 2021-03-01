@@ -6,8 +6,8 @@ import net.milosvasic.factory.remote.Remote
 
 class Proxy(
 
-    host: String,
-    port: Int = 3128,
+    host: String = "",
+    port: Int = 0,
     hostIp: String? = "",
     account: String? = "",
     val password: String? = "",
@@ -86,13 +86,18 @@ class Proxy(
         return null
     }
 
+    @Throws(IllegalStateException::class)
     fun getProxyHostname(): String {
 
         host?.let {
 
+            if (it == String.EMPTY) {
+
+                throw IllegalStateException("No host name available (1)")
+            }
             return it
         }
-        throw IllegalStateException("No host name available")
+        throw IllegalStateException("No host name available (2)")
     }
 
     fun print() = "Proxy(hostname=$host, hostIp=$hostIp, port=$port, account=$account, password=$password)"
