@@ -507,7 +507,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
         /*
          * {
          *  "type": "deploy",
-         *  "value": "{{SYSTEM.HOME}}/Core/Utils:{{SERVER.HOME}}/Utils"
+         *  "value": "{{SYSTEM.HOME}}/Core/Utils:{{SERVER.UTILS_HOME}}"
          * }
          */
         val systemHomePath = PathBuilder()

@@ -83,30 +83,26 @@ object Commands {
     @Throws(InvalidPathException::class, IllegalStateException::class)
     fun installProxy(): String {
 
-        val rootPath = PathBuilder()
+        val utilsHomePath = PathBuilder()
             .addContext(Context.Server)
+            .setKey(Key.UtilsHome)
+            .build()
+
+        val utilsHome = Variable.get(utilsHomePath)
+
+        val proxyHomePath = PathBuilder()
+            .addContext(Context.Proxy)
             .setKey(Key.Home)
             .build()
 
-        val root = Variable.get(rootPath)
-
-        val utilsRoot = FilePathBuilder()
-            .addContext(root)
-            .addContext(DIRECTORY_UTILS)
-            .build()
-
-        val proxyRoot = FilePathBuilder()
-            .addContext(root)
-            .addContext(DIRECTORY_SERVER)
-            .addContext(DIRECTORY_PROXY)
-            .build()
+        val proxyHome = Variable.get(proxyHomePath)
 
         val scriptPath = FilePathBuilder()
-            .addContext(utilsRoot)
+            .addContext(utilsHome)
             .addContext(SCRIPT_INSTALL_PROXY)
             .build()
 
-        return "$BASH $scriptPath $proxyRoot"
+        return "$BASH $scriptPath $proxyHome"
     }
 
     fun getApplicationInfo(application: String): String = "which $application"

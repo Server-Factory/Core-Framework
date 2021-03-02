@@ -85,6 +85,7 @@ object ConfigurationManager : Initializer, BusyDelegation {
             configuration?.let {
 
                 initializeSystemVariables(it)
+                initializeServerVariables(it)
 
                 val callback = Runnable {
 
@@ -340,6 +341,12 @@ object ConfigurationManager : Initializer, BusyDelegation {
             val systemNode = Node(name = ctxSystem.context(), children = systemVariables)
             node?.append(systemNode)
         }
+    }
+
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
+    fun initializeServerVariables(config: Configuration) {
+
+        val node = getVariablesRootNode(config)
 
         val rootPath = PathBuilder()
             .addContext(Context.Server)
@@ -354,8 +361,14 @@ object ConfigurationManager : Initializer, BusyDelegation {
             .build()
 
         val utilsHome = Key.UtilsHome
-        val systemUtilsNode = Node(name = utilsHome.key(), value = utilsPath)
-        systemVariables.add(systemUtilsNode)
+        val ctxServer = Context.Server
+
+        val utilsNode = Node(name = utilsHome.key(), value = utilsPath)
+        val serverVariables = mutableListOf<Node>()
+        serverVariables.add(utilsNode)
+
+        val serverNode = Node(name = ctxServer.context(), children = serverVariables)
+        node?.append(serverNode)
     }
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
