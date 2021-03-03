@@ -21,17 +21,6 @@ class ProxyInstallation(private val proxy: Proxy) : RemoteOperationInstallationS
             log.i(proxy.print())
             val validator = ProxyValidator()
             if (validator.validate(proxy)) {
-
-                val rootPath = PathBuilder()
-                    .addContext(Context.Proxy)
-                    .setKey(Key.Home)
-                    .build()
-
-                val proxyRoot = Variable.get(rootPath)
-
-                val mkdir = MkdirCommand(proxyRoot)
-                val installProxy = ProxyInstallationCommand()
-
                 try {
 
                     proxy.getProxyHostname()
@@ -40,9 +29,9 @@ class ProxyInstallation(private val proxy: Proxy) : RemoteOperationInstallationS
                     log.i("No Proxy configuration provided")
                 }
 
+                val installProxy = ProxyInstallationCommand()
                 return CommandFlow()
                     .width(conn)
-                    .perform(mkdir)
                     .perform(installProxy)
             } else {
 
