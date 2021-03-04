@@ -23,6 +23,7 @@ import net.milosvasic.factory.platform.HostIpAddressDataHandler
 import net.milosvasic.factory.platform.OperatingSystem
 import net.milosvasic.factory.remote.Connection
 import net.milosvasic.factory.remote.ConnectionProvider
+import net.milosvasic.factory.remote.EmptyHostAddressException
 import net.milosvasic.factory.remote.ssh.SSH
 import net.milosvasic.factory.terminal.command.Commands
 import net.milosvasic.factory.terminal.command.IpAddressObtainCommand
@@ -442,9 +443,19 @@ object ConfigurationManager : Initializer, BusyDelegation {
 
                 // Ignore.
             }
+            var host = Variable.EMPTY_VARIABLE
+            try {
+
+                host = proxy.getHost()
+            } catch (e: IllegalStateException) {
+
+                if (e !is EmptyHostAddressException) {
+                    throw e
+                }
+            }
 
             val proxyPort = Node(name = keyPort.key(), value = proxy.port)
-            val proxyHost = Node(name = keyHost.key(), value = proxy.getHost())
+            val proxyHost = Node(name = keyHost.key(), value = host)
             val proxyHostName = Node(name = keyHostName.key(), value = proxyHostname)
             val proxyAccountNode = Node(name = keyAccount.key(), value = proxyAccount)
             val proxyPasswordNode = Node(name = keyPassword.key(), value = proxyPassword)

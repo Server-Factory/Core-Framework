@@ -9,6 +9,7 @@ import net.milosvasic.factory.execution.flow.implementation.CommandFlow
 import net.milosvasic.factory.log
 import net.milosvasic.factory.remote.Connection
 import net.milosvasic.factory.remote.ssh.SSH
+import net.milosvasic.factory.terminal.command.EchoCommand
 import net.milosvasic.factory.terminal.command.MkdirCommand
 
 class ProxyInstallation(private val proxy: Proxy) : RemoteOperationInstallationStep<SSH>() {
@@ -20,22 +21,22 @@ class ProxyInstallation(private val proxy: Proxy) : RemoteOperationInstallationS
 
             log.i(proxy.print())
             val validator = ProxyValidator()
-            if (validator.validate(proxy)) {
-                try {
-
-                    proxy.getProxyHostname()
-                } catch (e: IllegalStateException) {
-
-                    log.i("No Proxy configuration provided")
-                }
+            return if (validator.validate(proxy)) {
 
                 val installProxy = ProxyInstallationCommand()
-                return CommandFlow()
+                CommandFlow()
                     .width(conn)
                     .perform(installProxy)
             } else {
 
-                throw IllegalArgumentException("Invalid proxy: ${proxy.print()}")
+                val msg = "No valid Proxy configuration provided"
+                val echo = EchoCommand(msg)
+
+                log.i(msg)
+
+                CommandFlow()
+                    .width(conn)
+                    .perform(echo)
             }
         }
         throw IllegalArgumentException("No proper connection provided")

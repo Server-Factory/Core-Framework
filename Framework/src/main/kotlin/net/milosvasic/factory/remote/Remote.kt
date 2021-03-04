@@ -36,7 +36,7 @@ open class Remote(
         hostIp?.let {
             if (behaviorGetIp && preferIpAddress && (it.isEmpty() || it.isBlank())) {
 
-                throw IllegalStateException("Host ip address is empty")
+                throw EmptyHostAddressException()
             }
             return it
         }
