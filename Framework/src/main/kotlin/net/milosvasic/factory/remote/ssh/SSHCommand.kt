@@ -37,7 +37,7 @@ constructor(
             return try {
 
                 proxy.getProxyHostname()
-                "source /etc/profile >/dev/null 2>&1; "
+                ". /etc/profile >/dev/null 2>&1; "
             } catch (e: IllegalStateException) {
 
                 String.EMPTY
