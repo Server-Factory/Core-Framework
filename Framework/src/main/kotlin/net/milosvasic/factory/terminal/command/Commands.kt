@@ -23,7 +23,7 @@ object Commands {
     const val TAR_EXTENSION = ".tar.gz"
 
     private const val CD = "cd"
-    private const val BASH = "sh"
+    private const val SHELL = "sh"
     private const val FIND = "find "
     private const val LINK = "ln -s"
     private const val SLEEP = "sleep"
@@ -77,7 +77,7 @@ object Commands {
             .addContext(SCRIPT_GET_IP)
             .build()
 
-        return "$BASH $filePath $host"
+        return "$SHELL $filePath $host"
     }
 
     @Throws(InvalidPathException::class, IllegalStateException::class)
@@ -102,7 +102,7 @@ object Commands {
             .addContext(SCRIPT_INSTALL_PROXY)
             .build()
 
-        return "$BASH $scriptPath $proxyHome"
+        return "$SHELL $scriptPath $proxyHome"
     }
 
     fun getApplicationInfo(application: String): String = "which $application"
@@ -177,7 +177,7 @@ object Commands {
             .addContext(SCRIPT_SET_HOSTNAME)
             .build()
 
-        return "$BASH $filePath $toSet"
+        return "$SHELL $filePath $toSet"
     }
 
     fun cat(what: String) = "cat $what"
