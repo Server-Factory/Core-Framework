@@ -22,6 +22,13 @@ object Commands {
     const val HERE = FILE_LOCATION_HERE
     const val TAR_EXTENSION = ".tar.gz"
 
+    const val DIRECTORY_CORE = "Core"
+    const val DIRECTORY_UTILS = "Utils"
+    const val DIRECTORY_PROXY = "Proxy"   // TODO: MSF-413
+    const val DIRECTORY_SERVER = "Server" // TODO: MSF-413
+
+    const val SCRIPT_CHECK = "check.sh"
+
     private const val CD = "cd"
     private const val SHELL = "sh"
     private const val FIND = "find "
@@ -34,11 +41,6 @@ object Commands {
     private const val OPENSSL = "openssl"
     private const val TAR_COMPRESS = "tar -cjf"
     private const val TAR_DECOMPRESS = "tar -xvf"
-
-    const val DIRECTORY_CORE = "Core"
-    const val DIRECTORY_UTILS = "Utils"
-    const val DIRECTORY_PROXY = "Proxy"   // TODO: MSF-413
-    const val DIRECTORY_SERVER = "Server" // TODO: MSF-413
 
     private const val SCRIPT_GET_IP = "getip.sh"
     private const val SCRIPT_SET_HOSTNAME = "set_hostname.sh"
