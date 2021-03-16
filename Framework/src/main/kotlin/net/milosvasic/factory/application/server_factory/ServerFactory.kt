@@ -324,6 +324,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
     @Throws(IllegalArgumentException::class)
     protected open fun getCoreUtilsInstallationDependencies(): SoftwareConfiguration {
 
+        val wget = InstallationStepDefinition(InstallationStepType.PACKAGES, value = "wget")
         val bzip2 = InstallationStepDefinition(InstallationStepType.PACKAGES, value = "bzip2")
         val selinuxPackages = "selinux-basics, selinux-policy-default, auditd"
         val selinux = InstallationStepDefinition(InstallationStepType.PACKAGES, value = selinuxPackages)
@@ -332,6 +333,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
             .setName(Deploy.SOFTWARE_CONFIGURATION_NAME)
             .setVersion(BuildInfo.version)
             .addInstallationStep(Platform.CENTOS, bzip2)
+            .addInstallationStep(Platform.CENTOS, wget)
             .addInstallationStep(Platform.UBUNTU, bzip2)
             .addInstallationStep(Platform.UBUNTU, selinux)
 
