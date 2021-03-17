@@ -56,9 +56,15 @@ open class Remote(
 
                 throw EmptyHostAddressException()
             }
+            if (it.isNotEmpty() && it.isNotBlank()) {
+
+                return it
+            }
+        }
+        getHostname()?.let {
+
             return it
         }
-        getHostname()?.let { return it }
         return LOCALHOST
     }
 
