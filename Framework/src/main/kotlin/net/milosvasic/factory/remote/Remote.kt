@@ -8,6 +8,7 @@ import net.milosvasic.factory.configuration.variable.Context
 import net.milosvasic.factory.configuration.variable.Key
 import net.milosvasic.factory.configuration.variable.PathBuilder
 import net.milosvasic.factory.configuration.variable.Variable
+import net.milosvasic.factory.validation.networking.IPV4Validator
 
 open class Remote(
 
@@ -28,6 +29,21 @@ open class Remote(
 
     @Throws(IllegalStateException::class)
     fun getHost(preferIpAddress: Boolean = true): String {
+
+        getHostname()?.let {
+
+            try {
+
+                val validator = IPV4Validator()
+                if (validator.validate(it)) {
+
+                    return it
+                }
+            } catch (e: IllegalArgumentException) {
+
+                // Ignore.
+            }
+        }
 
         val behavior = Behavior()
         val behaviorGetIp = behavior.behaviorGetIp()
