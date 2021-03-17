@@ -56,7 +56,6 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
     private val busy = Busy()
     private var runStartedAt = 0L
-    private var behaviorGetIp = Behavior().behaviorGetIp()
     private val executor = TaskExecutor.instantiate(5)
     private val terminators = ConcurrentLinkedQueue<Termination>()
     private var configurations = mutableListOf<SoftwareConfiguration>()
@@ -564,7 +563,10 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
             .perform(hostInfoCommand, getHostInfoDataHandler(os))
             .perform(hostNameCommand, HostNameDataHandler(os))
 
+        val behavior = Behavior()
+        val behaviorGetIp = behavior.behaviorGetIp()
         log.v("Behavior: GetIp= $behaviorGetIp")
+
         if (behaviorGetIp) {
 
             val getIpCommand = getIpAddressObtainCommand(os)
