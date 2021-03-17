@@ -2,6 +2,7 @@ package net.milosvasic.factory.configuration
 
 import net.milosvasic.factory.DIRECTORY_DEFAULT_INSTALLATION_LOCATION
 import net.milosvasic.factory.EMPTY
+import net.milosvasic.factory.behavior.Behavior
 import net.milosvasic.factory.common.busy.Busy
 import net.milosvasic.factory.common.busy.BusyDelegation
 import net.milosvasic.factory.common.busy.BusyException
@@ -480,21 +481,9 @@ object ConfigurationManager : Initializer, BusyDelegation {
             val host = proxy.getProxyHostname()
             val ip4Validator = IPV4Validator()
 
-            val behaviorPath = PathBuilder()
-                .addContext(Context.Behavior)
-                .setKey(Key.GetIp)
-                .build()
-
-            var behaviorGetIp = false
-            val msg = "Get IP behavior setting"
-            try {
-
-                behaviorGetIp = Variable.get(behaviorPath).toBoolean()
-                log.v("$msg (1): $behaviorGetIp")
-            } catch (e: IllegalStateException) {
-
-                log.v("$msg (2): $behaviorGetIp")
-            }
+            val behavior = Behavior()
+            val behaviorGetIp = behavior.behaviorGetIp()
+            log.v("Behavior: GetIp= $behaviorGetIp")
 
             if (ip4Validator.validate(host)) {
 

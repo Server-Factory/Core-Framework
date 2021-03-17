@@ -2,6 +2,7 @@ package net.milosvasic.factory.application.server_factory
 
 import net.milosvasic.factory.*
 import net.milosvasic.factory.application.DefaultInitializationHandler
+import net.milosvasic.factory.behavior.Behavior
 import net.milosvasic.factory.common.Application
 import net.milosvasic.factory.common.busy.Busy
 import net.milosvasic.factory.common.busy.BusyDelegation
@@ -55,7 +56,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
     private val busy = Busy()
     private var runStartedAt = 0L
-    private var behaviorGetIp = false
+    private var behaviorGetIp = Behavior().behaviorGetIp()
     private val executor = TaskExecutor.instantiate(5)
     private val terminators = ConcurrentLinkedQueue<Termination>()
     private var configurations = mutableListOf<SoftwareConfiguration>()
@@ -540,10 +541,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
             .addContext(Commands.DIRECTORY_UTILS)
             .build()
 
-        val behaviorPath = PathBuilder()
-            .addContext(Context.Behavior)
-            .setKey(Key.GetIp)
-            .build()
+
 
         val coreUtilsDeployment = getCoreUtilsDeploymentFlow(what, where, ssh)
         if (hostname != String.EMPTY) {
@@ -566,15 +564,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
             .perform(hostInfoCommand, getHostInfoDataHandler(os))
             .perform(hostNameCommand, HostNameDataHandler(os))
 
-        val msg = "Get IP behavior setting"
-        try {
-
-            behaviorGetIp = Variable.get(behaviorPath).toBoolean()
-            log.v("$msg (1): $behaviorGetIp")
-        } catch (e: IllegalStateException) {
-
-            log.v("$msg (2): $behaviorGetIp")
-        }
+        log.v("Behavior: GetIp= $behaviorGetIp")
         if (behaviorGetIp) {
 
             val getIpCommand = getIpAddressObtainCommand(os)

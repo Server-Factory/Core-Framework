@@ -3,6 +3,7 @@ package net.milosvasic.factory.remote
 import com.google.gson.annotations.SerializedName
 import net.milosvasic.factory.EMPTY
 import net.milosvasic.factory.LOCALHOST
+import net.milosvasic.factory.behavior.Behavior
 import net.milosvasic.factory.configuration.variable.Context
 import net.milosvasic.factory.configuration.variable.Key
 import net.milosvasic.factory.configuration.variable.PathBuilder
@@ -28,7 +29,8 @@ open class Remote(
     @Throws(IllegalStateException::class)
     fun getHost(preferIpAddress: Boolean = true): String {
 
-        val behaviorGetIp = behaviorGetIp()
+        val behavior = Behavior()
+        val behaviorGetIp = behavior.behaviorGetIp()
         if (behaviorGetIp && preferIpAddress && hostIp == null) {
 
             throw IllegalStateException("No host ip address available")
@@ -69,24 +71,5 @@ open class Remote(
             return hostname
         }
         return null
-    }
-
-    @Throws(IllegalArgumentException::class, IllegalStateException::class)
-    private fun behaviorGetIp(): Boolean {
-
-        val behaviorPath = PathBuilder()
-            .addContext(Context.Behavior)
-            .setKey(Key.GetIp)
-            .build()
-
-        var behaviorGetIp = false
-        try {
-
-            behaviorGetIp = Variable.get(behaviorPath).toBoolean()
-        } catch (e: IllegalStateException) {
-
-            // Ignore
-        }
-        return behaviorGetIp
     }
 }
