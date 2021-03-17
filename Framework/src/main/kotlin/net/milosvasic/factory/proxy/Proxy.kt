@@ -12,9 +12,6 @@ class Proxy(
     account: String? = "",
     val password: String? = "",
 
-    @SerializedName("self_signed_ca")
-    private val selfSignedCA: Boolean? = false,
-
     @SerializedName("certificate_endpoint")
     private val certificateEndpoint: String? = "",
 
@@ -57,15 +54,6 @@ class Proxy(
             return certificateEndpoint
         }
         return String.EMPTY
-    }
-
-    fun isSelfSignedCA(): Boolean {
-
-        selfSignedCA?.let {
-
-            return selfSignedCA
-        }
-        return false
     }
 
     fun getRefreshFrequency(): Int {

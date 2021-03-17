@@ -54,10 +54,6 @@ interface Key {
             override fun key() = "PASSWORD"
         }
 
-        val SelfSigned = object : Key {
-            override fun key() = "SELF_SIGNED"
-        }
-
         val CaEndpoint = object : Key {
             override fun key() = "CA_ENDPOINT"
         }

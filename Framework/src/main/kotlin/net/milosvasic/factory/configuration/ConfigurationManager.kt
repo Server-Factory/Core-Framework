@@ -403,7 +403,7 @@ object ConfigurationManager : Initializer, BusyDelegation {
 
         val proxy = config.getProxy()
 
-        @Throws(IllegalStateException::class, )
+        @Throws(IllegalStateException::class)
         fun initProxyVariables() {
 
             val keyHost = Key.Host
@@ -411,7 +411,6 @@ object ConfigurationManager : Initializer, BusyDelegation {
             val keyAccount = Key.Account
             val keyHostName = Key.Hostname
             val keyPassword = Key.Password
-            val keySelfSigned = Key.SelfSigned
             val keyCaEndpoint = Key.CaEndpoint
             val keyRefreshFrequency = Key.RefreshFrequency
 
@@ -460,7 +459,6 @@ object ConfigurationManager : Initializer, BusyDelegation {
             val proxyHostName = Node(name = keyHostName.key(), value = proxyHostname)
             val proxyAccountNode = Node(name = keyAccount.key(), value = proxyAccount)
             val proxyPasswordNode = Node(name = keyPassword.key(), value = proxyPassword)
-            val proxySelfSigned = Node(name = keySelfSigned.key(), value = proxy.isSelfSignedCA())
             val proxyCaEndpoint = Node(name = keyCaEndpoint.key(), value = proxyCertificateEndpoint)
             val proxyRefreshFrequency = Node(name = keyRefreshFrequency.key(), value = proxy.getRefreshFrequency())
 
@@ -469,7 +467,6 @@ object ConfigurationManager : Initializer, BusyDelegation {
             proxyVariables.add(proxyHostName)
             proxyVariables.add(proxyAccountNode)
             proxyVariables.add(proxyPasswordNode)
-            proxyVariables.add(proxySelfSigned)
             proxyVariables.add(proxyCaEndpoint)
             proxyVariables.add(proxyRefreshFrequency)
 
