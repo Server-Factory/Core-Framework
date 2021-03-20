@@ -480,7 +480,7 @@ object ConfigurationManager : Initializer, BusyDelegation {
 
             val behavior = Behavior()
             val behaviorGetIp = behavior.behaviorGetIp()
-            log.v("Behavior: GetIp= $behaviorGetIp")
+            log.v("Behavior: GET_IP= $behaviorGetIp")
 
             if (ip4Validator.validate(host)) {
 
