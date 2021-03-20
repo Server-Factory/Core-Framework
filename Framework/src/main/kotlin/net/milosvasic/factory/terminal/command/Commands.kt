@@ -3,6 +3,7 @@ package net.milosvasic.factory.terminal.command
 import net.milosvasic.factory.EMPTY
 import net.milosvasic.factory.FILE_LOCATION_HERE
 import net.milosvasic.factory.LOCALHOST
+import net.milosvasic.factory.behavior.Behavior
 import net.milosvasic.factory.common.filesystem.FilePathBuilder
 import net.milosvasic.factory.configuration.variable.Context
 import net.milosvasic.factory.configuration.variable.Key
@@ -108,12 +109,15 @@ object Commands {
 
         val utilsHome = getUtilsHome()
 
+        val behavior = Behavior()
+        val disable = behavior.behaviorDisableIptablesForMdns()
+
         val scriptPath = FilePathBuilder()
             .addContext(utilsHome)
             .addContext(SCRIPT_DISABLE_IPTABLES_FOR_MDNS)
             .build()
 
-        return "$SHELL $scriptPath"
+        return "$SHELL $scriptPath $disable"
     }
 
     fun getApplicationInfo(application: String): String = "which $application"
