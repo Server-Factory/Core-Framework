@@ -87,6 +87,7 @@ object ConfigurationManager : Initializer, BusyDelegation {
             configuration?.let {
 
                 initializeSystemVariables(it)
+                initializeBehaviorVariables(it)
                 initializeServerVariables(it)
 
                 val callback = Runnable {
@@ -342,6 +343,35 @@ object ConfigurationManager : Initializer, BusyDelegation {
 
             val systemNode = Node(name = ctxSystem.context(), children = systemVariables)
             node?.append(systemNode)
+        }
+    }
+
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
+    private fun initializeBehaviorVariables(config: Configuration) {
+
+        val node = getVariablesRootNode(config)
+
+        val ctxBehavior = Context.Behavior
+        val keyDisableIptables = Key.DisableIptablesForMdns
+
+        val pathBehavior = PathBuilder()
+            .addContext(ctxBehavior)
+            .setKey(keyDisableIptables)
+            .build()
+
+        val behaviorVariable = checkAndGetVariable(pathBehavior)
+
+        val behaviorVariables = mutableListOf<Node>()
+        if (behaviorVariable.isEmpty()) {
+
+            val behaviorDisableIptablesNode = Node(name = keyDisableIptables.key(), value = behaviorVariable)
+            behaviorVariables.add(behaviorDisableIptablesNode)
+        }
+
+        if (behaviorVariables.isNotEmpty()) {
+
+            val behaviorNode = Node(name = ctxBehavior.context(), children = behaviorVariables)
+            node?.append(behaviorNode)
         }
     }
 
