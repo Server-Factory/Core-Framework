@@ -580,21 +580,25 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
                 .perform(getIpObtainableCommand)
         }
 
-        if (behaviorDisableIpTablesForMdns) {
-
-            val disableCommand = DisableIptablesForMdns()
-
-            flow
-                .width(terminal)
-                .perform(disableCommand)
-        }
-
-        return flow
+        flow
             .width(ssh)
             .perform(testCommand)
             .connect(installerInitFlow)
             .connect(installationFlow)
             .connect(coreUtilsDeployment)
+
+        if (behaviorDisableIpTablesForMdns) {
+
+            val disableCommand = DisableIptablesForMdns()
+
+            val disableFlow = CommandFlow()
+                .width(ssh)
+                .perform(disableCommand)
+
+            flow.connect(disableFlow)
+        }
+
+        return flow
             .connect(proxyInstallationFlow)
             .onFinish(dieCallback)
     }
