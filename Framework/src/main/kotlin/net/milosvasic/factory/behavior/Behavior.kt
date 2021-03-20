@@ -1,27 +1,39 @@
 package net.milosvasic.factory.behavior
 
-import net.milosvasic.factory.configuration.variable.Context
-import net.milosvasic.factory.configuration.variable.Key
-import net.milosvasic.factory.configuration.variable.PathBuilder
-import net.milosvasic.factory.configuration.variable.Variable
+import net.milosvasic.factory.configuration.variable.*
 
 class Behavior {
 
     fun behaviorGetIp(): Boolean {
 
-        val behaviorPath = PathBuilder()
+        val behavior = PathBuilder()
             .addContext(Context.Behavior)
             .setKey(Key.GetIp)
             .build()
 
-        var behaviorGetIp = false
+        return getBehavior(behavior)
+    }
+
+    fun behaviorDisableIptablesForMdns(): Boolean {
+
+        val path = PathBuilder()
+            .addContext(Context.Behavior)
+            .setKey(Key.DisableIptablesForMdns)
+            .build()
+
+        return getBehavior(path)
+    }
+
+    private fun getBehavior(behaviorPath: Path): Boolean {
+
+        var behavior = false
         try {
 
-            behaviorGetIp = Variable.get(behaviorPath).toBoolean()
+            behavior = Variable.get(behaviorPath).toBoolean()
         } catch (e: IllegalStateException) {
 
             // Ignore
         }
-        return behaviorGetIp
+        return behavior
     }
 }

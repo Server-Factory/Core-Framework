@@ -46,6 +46,10 @@ interface Key {
             override fun key() = "GET_IP"
         }
 
+        val DisableIptablesForMdns = object : Key {
+            override fun key() = "DISABLE_IPTABLES_FOR_MDNS"
+        }
+
         val Hostname = object : Key {
             override fun key() = "HOSTNAME"
         }
