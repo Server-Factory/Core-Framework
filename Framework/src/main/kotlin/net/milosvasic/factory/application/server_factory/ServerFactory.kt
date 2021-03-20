@@ -566,8 +566,8 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
         val behaviorGetIp = behavior.behaviorGetIp()
         val behaviorDisableIpTablesForMdns = behavior.behaviorDisableIptablesForMdns()
 
-        log.v("Behavior: GET_IP= $behaviorGetIp")
-        log.v("Behavior: DISABLE_IPTABLES_FOR_MDNS= $behaviorDisableIpTablesForMdns")
+        log.v("Behavior: GET_IP=$behaviorGetIp")
+        log.v("Behavior: DISABLE_IPTABLES_FOR_MDNS=$behaviorDisableIpTablesForMdns")
 
         if (behaviorGetIp) {
 
