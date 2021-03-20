@@ -35,6 +35,7 @@ import net.milosvasic.factory.execution.flow.implementation.CommandFlow
 import net.milosvasic.factory.execution.flow.implementation.InstallationFlow
 import net.milosvasic.factory.execution.flow.implementation.ObtainableTerminalCommand
 import net.milosvasic.factory.execution.flow.implementation.initialization.InitializationFlow
+import net.milosvasic.factory.firewall.DisableIptablesForMdns
 import net.milosvasic.factory.operation.OperationResult
 import net.milosvasic.factory.operation.OperationResultListener
 import net.milosvasic.factory.platform.*
@@ -540,8 +541,6 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
             .addContext(Commands.DIRECTORY_UTILS)
             .build()
 
-
-
         val coreUtilsDeployment = getCoreUtilsDeploymentFlow(what, where, ssh)
         if (hostname != String.EMPTY) {
 
@@ -565,7 +564,10 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
         val behavior = Behavior()
         val behaviorGetIp = behavior.behaviorGetIp()
-        log.v("Behavior: GetIp= $behaviorGetIp")
+        val behaviorDisableIpTablesForMdns = behavior.behaviorDisableIptablesForMdns()
+
+        log.v("Behavior: GET_IP= $behaviorGetIp")
+        log.v("Behavior: DISABLE_IPTABLES_FOR_MDNS= $behaviorDisableIpTablesForMdns")
 
         if (behaviorGetIp) {
 
@@ -576,6 +578,15 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
             flow
                 .width(terminal)
                 .perform(getIpObtainableCommand)
+        }
+
+        if (behaviorDisableIpTablesForMdns) {
+
+            val disableCommand = DisableIptablesForMdns()
+
+            flow
+                .width(terminal)
+                .perform(disableCommand)
         }
 
         return flow

@@ -45,6 +45,7 @@ object Commands {
     private const val SCRIPT_GET_IP = "getip.sh"
     private const val SCRIPT_SET_HOSTNAME = "set_hostname.sh"
     private const val SCRIPT_INSTALL_PROXY = "proxy_install.sh"
+    private const val SCRIPT_DISABLE_IPTABLES_FOR_MDNS = "disable_iptables_for_avahi_mdns.sh"
 
     fun echo(what: String) = "echo '$what'"
 
@@ -85,12 +86,7 @@ object Commands {
     @Throws(InvalidPathException::class, IllegalStateException::class)
     fun installProxy(): String {
 
-        val utilsHomePath = PathBuilder()
-            .addContext(Context.Server)
-            .setKey(Key.UtilsHome)
-            .build()
-
-        val utilsHome = Variable.get(utilsHomePath)
+        val utilsHome = getUtilsHome()
 
         val proxyHomePath = PathBuilder()
             .addContext(Context.Proxy)
@@ -105,6 +101,19 @@ object Commands {
             .build()
 
         return "$SHELL $scriptPath $proxyHome"
+    }
+
+    @Throws(InvalidPathException::class, IllegalStateException::class)
+    fun disableIptablesForMdns(): String {
+
+        val utilsHome = getUtilsHome()
+
+        val scriptPath = FilePathBuilder()
+            .addContext(utilsHome)
+            .addContext(SCRIPT_DISABLE_IPTABLES_FOR_MDNS)
+            .build()
+
+        return "$SHELL $scriptPath"
     }
 
     fun getApplicationInfo(application: String): String = "which $application"
@@ -386,5 +395,16 @@ object Commands {
         var subject = "/C=$country/ST=$province/L=$city/O=$organisation/OU=$department/CN=$hostname"
         subject = subject.replace(" ", "\\ ")
         return subject
+    }
+
+    @Throws(InvalidPathException::class, IllegalStateException::class)
+    private fun getUtilsHome(): String {
+
+        val utilsHomePath = PathBuilder()
+            .addContext(Context.Server)
+            .setKey(Key.UtilsHome)
+            .build()
+
+        return Variable.get(utilsHomePath)
     }
 }
