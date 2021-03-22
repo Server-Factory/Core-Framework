@@ -352,20 +352,34 @@ object ConfigurationManager : Initializer, BusyDelegation {
         val node = getVariablesRootNode(config)
 
         val ctxBehavior = Context.Behavior
+        val keyGetIp = Key.GetIp
         val keyDisableIptables = Key.DisableIptablesForMdns
 
-        val pathBehavior = PathBuilder()
+        val pathBehaviorDisableIpTables = PathBuilder()
             .addContext(ctxBehavior)
             .setKey(keyDisableIptables)
             .build()
 
-        val behaviorVariable = checkAndGetVariable(pathBehavior)
+        val pathBehaviorGetIp = PathBuilder()
+            .addContext(ctxBehavior)
+            .setKey(keyGetIp)
+            .build()
+
+        val getIpVariable = checkAndGetVariable(pathBehaviorGetIp)
+        val disableIpTablesVariable = checkAndGetVariable(pathBehaviorDisableIpTables)
 
         val behaviorVariables = mutableListOf<Node>()
-        if (behaviorVariable.isEmpty()) {
 
-            val behaviorDisableIptablesNode = Node(name = keyDisableIptables.key(), value = behaviorVariable)
+        if (disableIpTablesVariable.isEmpty()) {
+
+            val behaviorDisableIptablesNode = Node(name = keyDisableIptables.key(), value = Variable.EMPTY_VARIABLE)
             behaviorVariables.add(behaviorDisableIptablesNode)
+        }
+
+        if (getIpVariable.isEmpty()) {
+
+            val behaviorGetIpNode = Node(name = keyGetIp.key(), value = Variable.EMPTY_VARIABLE)
+            behaviorVariables.add(behaviorGetIpNode)
         }
 
         if (behaviorVariables.isNotEmpty()) {
@@ -477,6 +491,10 @@ object ConfigurationManager : Initializer, BusyDelegation {
             try {
 
                 host = proxy.getHost()
+                if (host.isEmpty()) {
+
+                    host = Variable.EMPTY_VARIABLE
+                }
             } catch (e: IllegalStateException) {
 
                 if (e !is EmptyHostAddressException) {
