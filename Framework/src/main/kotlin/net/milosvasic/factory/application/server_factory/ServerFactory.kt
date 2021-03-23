@@ -505,7 +505,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
         val os = ssh.getRemoteOS()
         val hostname = getHostname()
         val terminal = ssh.getTerminal()
-        val host = ssh.getRemote().getHost()
+        val host = ssh.getRemote().getHost(preferIpAddress = false)
         val pingCommand = PingCommand(host)
         val hostNameCommand = HostNameCommand()
         val hostInfoCommand = getHostInfoCommand()
