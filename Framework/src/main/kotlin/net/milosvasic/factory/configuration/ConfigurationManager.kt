@@ -16,6 +16,7 @@ import net.milosvasic.factory.configuration.recipe.FileConfigurationRecipe
 import net.milosvasic.factory.configuration.recipe.RawJsonConfigurationRecipe
 import net.milosvasic.factory.configuration.variable.*
 import net.milosvasic.factory.execution.flow.implementation.CommandFlow
+import net.milosvasic.factory.fail
 import net.milosvasic.factory.filesystem.Directories
 import net.milosvasic.factory.log
 import net.milosvasic.factory.operation.OperationResult
@@ -30,6 +31,7 @@ import net.milosvasic.factory.terminal.command.IpAddressObtainCommand
 import net.milosvasic.factory.validation.JsonValidator
 import net.milosvasic.factory.validation.networking.IPV4Validator
 import java.io.File
+import java.lang.NullPointerException
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -38,6 +40,7 @@ object ConfigurationManager : Initializer, BusyDelegation {
     private val busy = Busy()
     private var loaded = AtomicBoolean()
     private val loading = AtomicBoolean()
+    private var installationLocation = ""
     private var configuration: Configuration? = null
     private var recipe: ConfigurationRecipe<*>? = null
     private lateinit var definitionProvider: DefinitionProvider
@@ -46,7 +49,23 @@ object ConfigurationManager : Initializer, BusyDelegation {
     private var configurations = mutableListOf<SoftwareConfiguration>()
     private val subscribers = ConcurrentLinkedQueue<OperationResultListener>()
     private val initializationOperation = ConfigurationManagerInitializationOperation()
-    private var installationLocation = Directories.DEFAULT_INSTALLATION_LOCATION
+
+    init {
+
+        try {
+
+            installationLocation = System.getProperty("user.home")
+        } catch (e: NullPointerException) {
+
+            fail(e)
+        } catch (e: IllegalArgumentException) {
+
+            fail(e)
+        } catch (e: SecurityException) {
+
+            fail(e)
+        }
+    }
 
     private var connectionProvider: ConnectionProvider = object : ConnectionProvider {
 
