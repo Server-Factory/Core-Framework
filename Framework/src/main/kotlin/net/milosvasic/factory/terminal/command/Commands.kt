@@ -1,7 +1,6 @@
 package net.milosvasic.factory.terminal.command
 
 import net.milosvasic.factory.EMPTY
-import net.milosvasic.factory.FILE_LOCATION_HERE
 import net.milosvasic.factory.LOCALHOST
 import net.milosvasic.factory.behavior.Behavior
 import net.milosvasic.factory.common.filesystem.FilePathBuilder
@@ -10,6 +9,7 @@ import net.milosvasic.factory.configuration.variable.Key
 import net.milosvasic.factory.configuration.variable.PathBuilder
 import net.milosvasic.factory.configuration.variable.Variable
 import net.milosvasic.factory.filesystem.Directories
+import net.milosvasic.factory.filesystem.FILE_LOCATION_HERE
 import net.milosvasic.factory.remote.Remote
 import java.nio.file.InvalidPathException
 

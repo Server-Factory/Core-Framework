@@ -9,7 +9,6 @@ import net.milosvasic.logger.FilesystemLogger
 import kotlin.system.exitProcess
 
 const val LOCALHOST = "127.0.0.1"
-const val FILE_LOCATION_HERE = "."
 
 var tag = BuildInfo.versionName
 val compositeLogger = CompositeLogger()
