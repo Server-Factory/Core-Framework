@@ -1,7 +1,7 @@
 package net.milosvasic.factory.application.server_factory
 
-import net.milosvasic.factory.DIRECTORY_DEFAULT_INSTALLATION_LOCATION
 import net.milosvasic.factory.configuration.recipe.ConfigurationRecipe
+import net.milosvasic.factory.filesystem.Directories
 import net.milosvasic.logger.Logger
 
 class ServerFactoryBuilder {
@@ -9,7 +9,7 @@ class ServerFactoryBuilder {
     private var logger: Logger? = null
     private var featureDatabase = true
     private var recipe: ConfigurationRecipe<*>? = null
-    private var installationLocation = DIRECTORY_DEFAULT_INSTALLATION_LOCATION
+    private var installationLocation = Directories.DEFAULT_INSTALLATION_LOCATION
 
     @Throws(IllegalArgumentException::class)
     fun getRecipe(): ConfigurationRecipe<*> {

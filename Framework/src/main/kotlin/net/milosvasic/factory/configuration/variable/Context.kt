@@ -1,7 +1,7 @@
 package net.milosvasic.factory.configuration.variable
 
 import net.milosvasic.factory.component.docker.DockerCommand
-import net.milosvasic.factory.terminal.command.Commands
+import net.milosvasic.factory.filesystem.Directories
 
 interface Context {
 
@@ -14,7 +14,7 @@ interface Context {
         }
 
         val Proxy = object : Context {
-            override fun context() = Commands.DIRECTORY_PROXY.toUpperCase()
+            override fun context() = Directories.PROXY.toUpperCase()
         }
 
         val Installation = object : Context {
@@ -22,7 +22,7 @@ interface Context {
         }
 
         val Server = object : Context {
-            override fun context() = Commands.DIRECTORY_SERVER.toUpperCase()
+            override fun context() = Directories.SERVER.toUpperCase()
         }
 
         val Behavior = object : Context {

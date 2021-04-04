@@ -1,6 +1,5 @@
 package net.milosvasic.factory.configuration
 
-import net.milosvasic.factory.DIRECTORY_DEFAULT_INSTALLATION_LOCATION
 import net.milosvasic.factory.EMPTY
 import net.milosvasic.factory.behavior.Behavior
 import net.milosvasic.factory.common.busy.Busy
@@ -17,6 +16,7 @@ import net.milosvasic.factory.configuration.recipe.FileConfigurationRecipe
 import net.milosvasic.factory.configuration.recipe.RawJsonConfigurationRecipe
 import net.milosvasic.factory.configuration.variable.*
 import net.milosvasic.factory.execution.flow.implementation.CommandFlow
+import net.milosvasic.factory.filesystem.Directories
 import net.milosvasic.factory.log
 import net.milosvasic.factory.operation.OperationResult
 import net.milosvasic.factory.operation.OperationResultListener
@@ -26,7 +26,6 @@ import net.milosvasic.factory.remote.Connection
 import net.milosvasic.factory.remote.ConnectionProvider
 import net.milosvasic.factory.remote.EmptyHostAddressException
 import net.milosvasic.factory.remote.ssh.SSH
-import net.milosvasic.factory.terminal.command.Commands
 import net.milosvasic.factory.terminal.command.IpAddressObtainCommand
 import net.milosvasic.factory.validation.JsonValidator
 import net.milosvasic.factory.validation.networking.IPV4Validator
@@ -46,8 +45,8 @@ object ConfigurationManager : Initializer, BusyDelegation {
     private var configurationFactory: ConfigurationFactory<*>? = null
     private var configurations = mutableListOf<SoftwareConfiguration>()
     private val subscribers = ConcurrentLinkedQueue<OperationResultListener>()
-    private var installationLocation = DIRECTORY_DEFAULT_INSTALLATION_LOCATION
     private val initializationOperation = ConfigurationManagerInitializationOperation()
+    private var installationLocation = Directories.DEFAULT_INSTALLATION_LOCATION
 
     private var connectionProvider: ConnectionProvider = object : ConnectionProvider {
 
@@ -403,7 +402,7 @@ object ConfigurationManager : Initializer, BusyDelegation {
 
         val utilsPath = FilePathBuilder()
             .addContext(root)
-            .addContext(Commands.DIRECTORY_UTILS)
+            .addContext(Directories.UTILS)
             .build()
 
         val utilsHome = Key.UtilsHome
@@ -434,8 +433,8 @@ object ConfigurationManager : Initializer, BusyDelegation {
 
         val home = FilePathBuilder()
             .addContext(root)
-            .addContext(Commands.DIRECTORY_SERVER)
-            .addContext(Commands.DIRECTORY_PROXY)
+            .addContext(Directories.SERVER)
+            .addContext(Directories.PROXY)
             .build()
 
         val proxyHome = Node(name = keyHome.key(), value = home)

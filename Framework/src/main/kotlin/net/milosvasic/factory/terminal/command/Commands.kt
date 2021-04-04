@@ -9,6 +9,7 @@ import net.milosvasic.factory.configuration.variable.Context
 import net.milosvasic.factory.configuration.variable.Key
 import net.milosvasic.factory.configuration.variable.PathBuilder
 import net.milosvasic.factory.configuration.variable.Variable
+import net.milosvasic.factory.filesystem.Directories
 import net.milosvasic.factory.remote.Remote
 import java.nio.file.InvalidPathException
 
@@ -20,15 +21,9 @@ object Commands {
     const val SCP = "scp -P"
     const val UNAME = "uname"
     const val HOSTNAME = "hostname"
-    const val HERE = FILE_LOCATION_HERE
-    const val TAR_EXTENSION = ".tar.gz"
-
-    const val DIRECTORY_CORE = "Core"
-    const val DIRECTORY_UTILS = "Utils"
-    const val DIRECTORY_PROXY = "Proxy"   // TODO: MSF-413
-    const val DIRECTORY_SERVER = "Server" // TODO: MSF-413
-
     const val SCRIPT_CHECK = "check.sh"
+    const val TAR_EXTENSION = ".tar.gz"
+    const val HERE = FILE_LOCATION_HERE
 
     private const val CD = "cd"
     private const val SHELL = "sh"
@@ -76,8 +71,8 @@ object Commands {
 
         val filePath = FilePathBuilder()
             .addContext(systemHome)
-            .addContext(DIRECTORY_CORE)
-            .addContext(DIRECTORY_UTILS)
+            .addContext(Directories.CORE)
+            .addContext(Directories.UTILS)
             .addContext(SCRIPT_GET_IP)
             .build()
 
@@ -188,7 +183,7 @@ object Commands {
 
         val filePath = FilePathBuilder()
             .addContext(serverHome)
-            .addContext(DIRECTORY_UTILS)
+            .addContext(Directories.UTILS)
             .addContext(SCRIPT_SET_HOSTNAME)
             .build()
 

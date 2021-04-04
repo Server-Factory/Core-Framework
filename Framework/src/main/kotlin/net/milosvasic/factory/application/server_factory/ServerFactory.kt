@@ -35,6 +35,7 @@ import net.milosvasic.factory.execution.flow.implementation.CommandFlow
 import net.milosvasic.factory.execution.flow.implementation.InstallationFlow
 import net.milosvasic.factory.execution.flow.implementation.ObtainableTerminalCommand
 import net.milosvasic.factory.execution.flow.implementation.initialization.InitializationFlow
+import net.milosvasic.factory.filesystem.Directories
 import net.milosvasic.factory.firewall.DisableIptablesForMdns
 import net.milosvasic.factory.operation.OperationResult
 import net.milosvasic.factory.operation.OperationResultListener
@@ -526,8 +527,8 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
         val what = FilePathBuilder()
             .addContext(systemHome)
-            .addContext(Commands.DIRECTORY_CORE)
-            .addContext(Commands.DIRECTORY_UTILS)
+            .addContext(Directories.CORE)
+            .addContext(Directories.UTILS)
             .build()
 
         val whereRootPath = PathBuilder()
@@ -539,7 +540,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
         val where = FilePathBuilder()
             .addContext(whereRoot)
-            .addContext(Commands.DIRECTORY_UTILS)
+            .addContext(Directories.UTILS)
             .build()
 
         val coreUtilsDeployment = getCoreUtilsDeploymentFlow(what, where, ssh)
