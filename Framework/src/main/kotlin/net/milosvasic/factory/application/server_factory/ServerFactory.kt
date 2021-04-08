@@ -136,6 +136,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
                 compositeLogger.addLogger(it)
             }
             featureDatabase = builder.getFeatureDatabase()
+
             try {
 
                 ConfigurationManager.setConfigurationRecipe(builder.getRecipe())
@@ -159,6 +160,9 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
                 notifyInit(e)
             } catch (e: IllegalStateException) {
+
+                notifyInit(e)
+            } catch (e: SecurityException) {
 
                 notifyInit(e)
             } catch (e: RuntimeException) {

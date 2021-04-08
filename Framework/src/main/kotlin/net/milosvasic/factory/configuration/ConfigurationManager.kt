@@ -50,23 +50,6 @@ object ConfigurationManager : Initializer, BusyDelegation {
     private val subscribers = ConcurrentLinkedQueue<OperationResultListener>()
     private val initializationOperation = ConfigurationManagerInitializationOperation()
 
-    init {
-
-        try {
-
-            installationLocation = System.getProperty("user.home")
-        } catch (e: NullPointerException) {
-
-            fail(e)
-        } catch (e: IllegalArgumentException) {
-
-            fail(e)
-        } catch (e: SecurityException) {
-
-            fail(e)
-        }
-    }
-
     private var connectionProvider: ConnectionProvider = object : ConnectionProvider {
 
         @Throws(IllegalArgumentException::class)
@@ -90,6 +73,7 @@ object ConfigurationManager : Initializer, BusyDelegation {
 
         checkInitialized()
         busy()
+
         if (configurationFactory == null) {
 
             throw IllegalStateException("Configuration factory was not provided")
@@ -98,6 +82,7 @@ object ConfigurationManager : Initializer, BusyDelegation {
 
             throw IllegalStateException("Configuration recipe was not provided")
         }
+
         recipe?.let { rcp ->
 
             configuration = configurationFactory?.obtain(rcp)

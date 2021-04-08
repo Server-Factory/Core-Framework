@@ -1,32 +1,33 @@
 package net.milosvasic.factory.application.server_factory
 
+import net.milosvasic.factory.EMPTY
+import net.milosvasic.factory.common.filesystem.FilePathBuilder
 import net.milosvasic.factory.configuration.recipe.ConfigurationRecipe
-import net.milosvasic.factory.fail
 import net.milosvasic.logger.Logger
-import java.lang.NullPointerException
 
 class ServerFactoryBuilder {
 
     private var logger: Logger? = null
     private var featureDatabase = true
-    private var installationLocation = ""
+    private var installationHome: String? = null
     private var recipe: ConfigurationRecipe<*>? = null
 
-    init {
+    @Throws(SecurityException::class)
+    fun getInstallationLocation(): String {
 
-        try {
+        var installationHomeLocation = String.EMPTY
+        installationHome?.let { home ->
 
-            installationLocation = System.getProperty("user.home")
-        } catch (e: NullPointerException) {
-
-            fail(e)
-        } catch (e: IllegalArgumentException) {
-
-            fail(e)
-        } catch (e: SecurityException) {
-
-            fail(e)
+            installationHomeLocation = home
         }
+        if (installationHomeLocation.isEmpty() || installationHomeLocation.isBlank()) {
+
+            installationHomeLocation = System.getProperty("user.home")
+        }
+
+        return FilePathBuilder()
+            .addContext(installationHomeLocation)
+            .getPath()
     }
 
     @Throws(IllegalArgumentException::class)
@@ -49,11 +50,8 @@ class ServerFactoryBuilder {
 
     fun getFeatureDatabase() = featureDatabase
 
-    fun getInstallationLocation(): String = installationLocation
+    fun setInstallationHome(home: String) {
 
-    fun setInstallationLocation(location: String): ServerFactoryBuilder {
-
-        installationLocation = location
-        return this
+        installationHome = home
     }
 }
