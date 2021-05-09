@@ -5,6 +5,7 @@ import net.milosvasic.factory.common.filesystem.FilePathBuilder
 import net.milosvasic.factory.configuration.definition.Definition
 import net.milosvasic.factory.configuration.variable.Node
 import net.milosvasic.factory.merge
+import net.milosvasic.factory.proxy.Proxy
 import net.milosvasic.factory.remote.Remote
 import java.io.File
 import java.nio.file.InvalidPathException
@@ -12,28 +13,30 @@ import java.util.concurrent.LinkedBlockingQueue
 
 abstract class Configuration(
 
-        definition: Definition? = null,
-        val name: String? = String.EMPTY,
-        val remote: Remote,
-        uses: LinkedBlockingQueue<String>?,
-        includes: LinkedBlockingQueue<String>?,
-        software: LinkedBlockingQueue<String>?,
-        containers: LinkedBlockingQueue<String>?,
-        variables: Node? = null,
-        overrides: MutableMap<String, MutableMap<String, SoftwareConfiguration>>?,
-        enabled: Boolean? = null
+    definition: Definition? = null,
+    val name: String? = String.EMPTY,
+    val remote: Remote,
+    uses: LinkedBlockingQueue<String>?,
+    includes: LinkedBlockingQueue<String>?,
+    software: LinkedBlockingQueue<String>?,
+    containers: LinkedBlockingQueue<String>?,
+    variables: Node? = null,
+    overrides: MutableMap<String, MutableMap<String, SoftwareConfiguration>>?,
+    enabled: Boolean? = null
 
 ) : ConfigurationInclude(
 
-        definition,
-        uses,
-        includes,
-        software,
-        containers,
-        variables,
-        overrides,
-        enabled
+    definition,
+    uses,
+    includes,
+    software,
+    containers,
+    variables,
+    overrides,
+    enabled
 ) {
+
+    private var proxy: Proxy? = null
 
     companion object {
 
@@ -46,9 +49,9 @@ abstract class Configuration(
             if (!path.endsWith(".json")) {
 
                 val param = FilePathBuilder()
-                        .addContext(File.separator)
-                        .addContext(DEFAULT_CONFIGURATION_FILE)
-                        .build()
+                    .addContext(File.separator)
+                    .addContext(DEFAULT_CONFIGURATION_FILE)
+                    .build()
 
                 fullPath += param
             }
@@ -82,6 +85,13 @@ abstract class Configuration(
                         it.merge(ods)
                     }
                 }
+                configuration.proxy?.let {
+                    proxy?.let { p ->
+
+                        throw IllegalArgumentException("Proxy conflict: ${p.print()} vs ${it.print()}")
+                    }
+                    proxy = it
+                }
             }
         }
     }
@@ -96,6 +106,14 @@ abstract class Configuration(
                 }
             }
         }
+    }
+
+    fun getProxy(): Proxy {
+
+        proxy?.let {
+            return it
+        }
+        return Proxy()
     }
 
     override fun toString(): String {

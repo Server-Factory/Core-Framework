@@ -9,6 +9,8 @@ object Variable {
     private const val OPEN = "{{"
     private const val CLOSE = "}}"
 
+    const val EMPTY_VARIABLE = "__empty__"
+
     private fun getRegex() = "${Pattern.quote(OPEN)}(.*?)${Pattern.quote(CLOSE)}"
 
     private fun getPattern() = Pattern.compile(getRegex())
@@ -45,7 +47,12 @@ object Variable {
                             if (variable == String.EMPTY) {
                                 noVariable(match)
                             }
-                            result = result.replace("$OPEN$match$CLOSE", variable)
+                            result = if (variable == EMPTY_VARIABLE) {
+
+                                result.replace("$OPEN$match$CLOSE", "")
+                            } else {
+                                result.replace("$OPEN$match$CLOSE", variable)
+                            }
                         }
                     }
                 }

@@ -10,16 +10,16 @@ interface Key {
             override fun key() = "HOME"
         }
 
-        val ServerHome = object : Key {
-            override fun key() = "SERVER_HOME"
+        val UtilsHome = object : Key {
+            override fun key() = "UTILS_HOME"
         }
 
-        val DockerHome = object : Key {
-            override fun key() = "DOCKER_HOME"
+        val Account = object : Key {
+            override fun key() = "ACCOUNT"
         }
 
         val DockerComposePath = object : Key {
-            override fun key() = "DOCKER_COMPOSE_PATH"
+            override fun key() = "COMPOSE_PATH"
         }
 
         val Type = object : Key {
@@ -46,12 +46,24 @@ interface Key {
             override fun key() = "GET_IP"
         }
 
+        val DisableIptablesForMdns = object : Key {
+            override fun key() = "DISABLE_IPTABLES_FOR_MDNS"
+        }
+
         val Hostname = object : Key {
             override fun key() = "HOSTNAME"
         }
 
         val Password = object : Key {
             override fun key() = "PASSWORD"
+        }
+
+        val CaEndpoint = object : Key {
+            override fun key() = "CA_ENDPOINT"
+        }
+
+        val RefreshFrequency = object : Key {
+            override fun key() = "REFRESH_FREQUENCY"
         }
 
         val Passphrase = object : Key {

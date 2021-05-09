@@ -5,7 +5,10 @@ import net.milosvasic.factory.common.filesystem.FilePathBuilder
 import net.milosvasic.factory.common.obtain.Obtain
 import net.milosvasic.factory.component.installer.step.RemoteOperationInstallationStep
 import net.milosvasic.factory.configuration.variable.Variable
+import net.milosvasic.factory.error.ERROR
+import net.milosvasic.factory.execution.flow.callback.FlowCallback
 import net.milosvasic.factory.execution.flow.implementation.CommandFlow
+import net.milosvasic.factory.fail
 import net.milosvasic.factory.log
 import net.milosvasic.factory.operation.OperationResult
 import net.milosvasic.factory.remote.Connection
@@ -19,7 +22,13 @@ import net.milosvasic.factory.terminal.command.*
 import java.io.File
 import java.nio.file.InvalidPathException
 
-open class Deploy(what: String, private val where: String) : RemoteOperationInstallationStep<SSH>() {
+open class Deploy(
+
+    what: String,
+    private val where: String,
+    private val keepProtoFiles: Boolean = false
+
+) : RemoteOperationInstallationStep<SSH>() {
 
     companion object {
 
@@ -35,7 +44,16 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
     private val tmpPath = tmpDirectory().absolutePath
     private val excludes = listOf("$PROTOTYPE_PREFIX*")
 
+    private val toCommandFlowCallback = object : FlowCallback {
+
+        override fun onFinish(success: Boolean) {
+
+            cleanupFiles(whatFile)
+        }
+    }
+
     private val onDirectoryCreated = object : DataHandler<OperationResult> {
+
         override fun onData(data: OperationResult?) {
 
             if (data == null || !data.success) {
@@ -43,6 +61,7 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
                 finish(false)
                 return
             }
+
             if (whatFile.exists()) {
                 if (whatFile.isDirectory) {
                     try {
@@ -63,6 +82,7 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
                     finish(false)
                 }
             } else {
+
                 log.e("File does not exist: ${whatFile.absolutePath}")
                 finish(false)
             }
@@ -73,6 +93,7 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
     override fun getFlow(): CommandFlow {
 
         connection?.let { conn ->
+
             terminal = conn.getTerminal()
             remote = connection?.getRemote()
 
@@ -95,12 +116,18 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
                         .perform(UnTarCommand(getRemoteTar(), where))
                         .perform(RmCommand(getRemoteTar()))
 
-                    try {
-                        val protoCleanup = getProtoCleanup()
-                        flow.perform(protoCleanup)
-                    } catch (e: IllegalArgumentException) {
+                    if (keepProtoFiles) {
 
-                        log.w(e)
+                        log.v("Keeping proto files for: $where")
+                    } else {
+                        try {
+
+                            val protoCleanup = getProtoCleanup()
+                            flow.perform(protoCleanup)
+                        } catch (e: IllegalArgumentException) {
+
+                            log.w(e)
+                        }
                     }
 
                     return flow
@@ -114,6 +141,8 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
         throw IllegalArgumentException("No proper connection provided")
     }
 
+    override fun toCommandFlow() = getFlow().onFinish(toCommandFlowCallback)
+
     override fun finish(success: Boolean) {
         try {
 
@@ -123,6 +152,10 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
 
             log.e(e)
             super.finish(false)
+        }
+        if (!success) {
+
+            fail(ERROR.RUNTIME_ERROR)
         }
     }
 
@@ -136,7 +169,7 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
             connection = conn
             return this
         }
-        val msg = "${conn::class.simpleName} is not supported, onlt ${SSH::class.simpleName}"
+        val msg = "${conn::class.simpleName} is not supported, only ${SSH::class.simpleName}"
         throw IllegalArgumentException(msg)
     }
 
@@ -149,10 +182,13 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
     protected open fun getProtoCleanup(): TerminalCommand {
 
         if (excludes.isEmpty()) {
+
             throw IllegalArgumentException("No excludes available")
         }
+
         val excluded = mutableListOf<String>()
         excludes.forEach {
+
             val exclude = FindAndRemoveCommand(it, Commands.HERE)
             excluded.add(exclude.command)
         }
@@ -161,8 +197,8 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
 
     protected open fun getSecurityChanges(remote: Remote): TerminalCommand {
 
-        val chown = Commands.chown(remote.account, where)
-        val chgrp = Commands.chgrp(remote.account, where)
+        val chown = Commands.chown(remote.getAccountName(), where)
+        val chgrp = Commands.chgrp(remote.getAccountName(), where)
         val permissions = Permissions(Permission.ALL, Permission.NONE, Permission.NONE)
         val chmod = Commands.chmod(where, permissions.obtain())
         return ConcatenateCommand(chown, chgrp, chmod)
@@ -170,12 +206,16 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
 
     @Throws(IllegalStateException::class)
     private fun processFiles(directory: File) {
+
         val fileList = directory.listFiles()
         fileList?.let { files ->
             files.forEach { file ->
+
                 if (file.isDirectory) {
+
                     processFiles(file)
                 } else if (file.name.toLowerCase().startsWith(PROTOTYPE_PREFIX)) {
+
                     processFile(directory, file)
                 }
             }
@@ -184,12 +224,16 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
 
     @Throws(IllegalStateException::class)
     private fun cleanupFiles(directory: File) {
+
         val fileList = directory.listFiles()
         fileList?.let { files ->
             files.forEach { file ->
+
                 if (file.isDirectory) {
+
                     cleanupFiles(file)
                 } else if (file.name.toLowerCase().startsWith(PROTOTYPE_PREFIX)) {
+
                     val toRemove = File(directory, getName(file))
                     cleanupFile(toRemove)
                 }
@@ -198,33 +242,45 @@ open class Deploy(what: String, private val where: String) : RemoteOperationInst
     }
 
     private fun cleanupFile(file: File) {
+
         if (file.exists()) {
             if (file.delete()) {
+
                 log.v("File is removed: ${file.absolutePath}")
             } else {
+
                 log.w("File could not be removed: ${file.absolutePath}")
             }
         } else {
+
             log.w("File does not exist: ${file.absolutePath}")
         }
     }
 
     @Throws(IllegalStateException::class)
     private fun processFile(directory: File, file: File) {
+
         if (!file.exists()) {
+
             throw IllegalStateException("File does not exist: ${file.absolutePath}")
         }
+
         log.v("Processing prototype file: ${file.absolutePath}")
         val content = file.readText()
-        if (content.isNotEmpty() && !content.isBlank()) {
+        if (content.isNotEmpty() && content.isNotBlank()) {
+
             val parsedContent = Variable.parse(content)
             val destination = File(directory, getName(file))
+
             if (destination.exists()) {
+
                 throw IllegalStateException("Destination file already exist: ${destination.absolutePath}")
             } else {
                 if (destination.createNewFile()) {
+
                     destination.writeText(parsedContent)
                 } else {
+
                     throw IllegalStateException("Can't create destination file: ${destination.absolutePath}")
                 }
             }

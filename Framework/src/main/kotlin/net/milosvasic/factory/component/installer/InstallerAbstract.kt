@@ -32,9 +32,7 @@ abstract class InstallerAbstract(entryPoint: Connection) :
 
     private val flowCallback = object : FlowCallback {
 
-        override fun onFinish(success: Boolean) {
-            free(success)
-        }
+        override fun onFinish(success: Boolean) = free(success)
     }
 
     @Synchronized
@@ -86,6 +84,7 @@ abstract class InstallerAbstract(entryPoint: Connection) :
     @Synchronized
     @Throws(UnsupportedOperationException::class)
     override fun uninstall() {
+
         throw UnsupportedOperationException("Not implemented yet")
     }
 
@@ -101,6 +100,7 @@ abstract class InstallerAbstract(entryPoint: Connection) :
     @Synchronized
     @Throws(IllegalStateException::class)
     final override fun terminate() {
+
         checkNotInitialized()
         clearConfiguration()
         log.v("Shutting down: $this")
@@ -119,6 +119,7 @@ abstract class InstallerAbstract(entryPoint: Connection) :
     @Synchronized
     @Throws(IllegalStateException::class)
     override fun checkNotInitialized() {
+
         if (!isInitialized()) {
             throw IllegalStateException("Installer has not been initialized")
         }
@@ -127,6 +128,7 @@ abstract class InstallerAbstract(entryPoint: Connection) :
     @Synchronized
     @Throws(BusyException::class)
     override fun setConfiguration(configuration: SoftwareConfiguration) {
+
         busy()
         this.config = configuration
         free()
@@ -135,27 +137,26 @@ abstract class InstallerAbstract(entryPoint: Connection) :
     @Synchronized
     @Throws(BusyException::class)
     override fun clearConfiguration() {
+
         busy()
         config = null
         free()
     }
 
-    override fun onSuccessResult() {
-        free(true)
-    }
+    override fun onSuccessResult() = free(true)
 
-    override fun onFailedResult() {
-        free(false)
-    }
+    override fun onFailedResult() = free(false)
 
     @Synchronized
     override fun notify(success: Boolean) {
+
         val operation = getNotifyOperation()
         val result = OperationResult(operation, success)
         notify(result)
     }
 
     fun addProcessingRecipesRegistrar(registrar: ProcessingRecipesRegistration) {
+
         if (!recipeRegistrars.contains(registrar)) {
             recipeRegistrars.add(registrar)
         }

@@ -1,6 +1,7 @@
 package net.milosvasic.factory.application.server_factory
 
-import net.milosvasic.factory.DIRECTORY_DEFAULT_INSTALLATION_LOCATION
+import net.milosvasic.factory.EMPTY
+import net.milosvasic.factory.common.filesystem.FilePathBuilder
 import net.milosvasic.factory.configuration.recipe.ConfigurationRecipe
 import net.milosvasic.logger.Logger
 
@@ -8,8 +9,26 @@ class ServerFactoryBuilder {
 
     private var logger: Logger? = null
     private var featureDatabase = true
+    private var installationHome: String? = null
     private var recipe: ConfigurationRecipe<*>? = null
-    private var installationLocation = DIRECTORY_DEFAULT_INSTALLATION_LOCATION
+
+    @Throws(SecurityException::class)
+    fun getInstallationLocation(): String {
+
+        var installationHomeLocation = String.EMPTY
+        installationHome?.let { home ->
+
+            installationHomeLocation = home
+        }
+        if (installationHomeLocation.isEmpty() || installationHomeLocation.isBlank()) {
+
+            installationHomeLocation = System.getProperty("user.home")
+        }
+
+        return FilePathBuilder()
+            .addContext(installationHomeLocation)
+            .getPath()
+    }
 
     @Throws(IllegalArgumentException::class)
     fun getRecipe(): ConfigurationRecipe<*> {
@@ -29,25 +48,10 @@ class ServerFactoryBuilder {
 
     fun getLogger() = logger
 
-    fun setLogger(logger: Logger): ServerFactoryBuilder {
-
-        this.logger = logger
-        return this
-    }
-
     fun getFeatureDatabase() = featureDatabase
 
-    fun setFeatureDatabase(featureDatabase: Boolean): ServerFactoryBuilder {
+    fun setInstallationHome(home: String) {
 
-        this.featureDatabase = featureDatabase
-        return this
-    }
-
-    fun getInstallationLocation() = installationLocation
-
-    fun setInstallationLocation(location: String): ServerFactoryBuilder {
-
-        installationLocation = location
-        return this
+        installationHome = home
     }
 }

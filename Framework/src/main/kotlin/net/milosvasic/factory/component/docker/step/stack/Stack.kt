@@ -103,7 +103,7 @@ open class Stack(
 
     @Throws(IllegalArgumentException::class)
     private fun getOwnershipAndPermissions(script: String): String {
-        val account = connection?.getRemote()?.account
+        val account = connection?.getRemote()?.getAccountName()
                 ?: throw IllegalArgumentException("No host for connection provided")
         val permissions = Permissions(Permission.ALL, Permission.NONE, Permission.NONE)
         return Commands.concatenate(

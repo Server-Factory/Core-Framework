@@ -3,24 +3,50 @@ package net.milosvasic.factory.remote
 import com.google.gson.annotations.SerializedName
 import net.milosvasic.factory.EMPTY
 import net.milosvasic.factory.LOCALHOST
+import net.milosvasic.factory.behavior.Behavior
 import net.milosvasic.factory.configuration.variable.Context
 import net.milosvasic.factory.configuration.variable.Key
 import net.milosvasic.factory.configuration.variable.PathBuilder
 import net.milosvasic.factory.configuration.variable.Variable
-import net.milosvasic.factory.log
+import net.milosvasic.factory.validation.networking.IPV4Validator
 
-class Remote(
+open class Remote(
 
-    private var host: String?,
-    private var hostIp: String?,
+    protected var host: String?,
+    protected var hostIp: String?,
     val port: Int,
-    @SerializedName("user") val account: String
+    @SerializedName("user") protected val account: String?
 ) {
 
-    @Throws(IllegalArgumentException::class, IllegalStateException::class)
+    fun getAccountName(): String {
+
+        account?.let {
+
+            return it
+        }
+        return String.EMPTY
+    }
+
+    @Throws(IllegalStateException::class)
     fun getHost(preferIpAddress: Boolean = true): String {
 
-        val behaviorGetIp = behaviorGetIp()
+        getHostname()?.let {
+
+            try {
+
+                val validator = IPV4Validator()
+                if (validator.validate(it)) {
+
+                    return it
+                }
+            } catch (e: IllegalArgumentException) {
+
+                // Ignore.
+            }
+        }
+
+        val behavior = Behavior()
+        val behaviorGetIp = behavior.behaviorGetIp()
         if (behaviorGetIp && preferIpAddress && hostIp == null) {
 
             throw IllegalStateException("No host ip address available")
@@ -28,16 +54,22 @@ class Remote(
         hostIp?.let {
             if (behaviorGetIp && preferIpAddress && (it.isEmpty() || it.isBlank())) {
 
-                throw IllegalStateException("Host ip address is empty")
+                throw EmptyHostAddressException()
             }
+            if (it.isNotEmpty() && it.isNotBlank()) {
+
+                return it
+            }
+        }
+        getHostname()?.let {
+
             return it
         }
-        getHostname()?.let { return it }
         return LOCALHOST
     }
 
     @Throws(IllegalArgumentException::class)
-    fun setHostIp(hostIp: String) {
+    fun setHostIpAddress(hostIp: String) {
 
         if (hostIp.isEmpty() || hostIp.isBlank()) {
 
@@ -46,7 +78,7 @@ class Remote(
         this.hostIp = hostIp
     }
 
-    private fun getHostname(): String? {
+    protected open fun getHostname(): String? {
 
         host?.let { return it }
 
@@ -61,26 +93,5 @@ class Remote(
             return hostname
         }
         return null
-    }
-
-    @Throws(IllegalArgumentException::class, IllegalStateException::class)
-    private fun behaviorGetIp(): Boolean {
-
-        val behaviorPath = PathBuilder()
-            .addContext(Context.Behavior)
-            .setKey(Key.GetIp)
-            .build()
-
-        var behaviorGetIp = false
-        val msg = "Get IP behavior setting"
-        try {
-
-            behaviorGetIp = Variable.get(behaviorPath).toBoolean()
-            log.v("$msg (1): $behaviorGetIp")
-        } catch (e: IllegalStateException) {
-
-            log.v("$msg (2): $behaviorGetIp")
-        }
-        return behaviorGetIp
     }
 }

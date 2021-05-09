@@ -1,13 +1,15 @@
 package net.milosvasic.factory.terminal.command
 
 import net.milosvasic.factory.EMPTY
-import net.milosvasic.factory.FILE_LOCATION_HERE
 import net.milosvasic.factory.LOCALHOST
+import net.milosvasic.factory.behavior.Behavior
 import net.milosvasic.factory.common.filesystem.FilePathBuilder
 import net.milosvasic.factory.configuration.variable.Context
 import net.milosvasic.factory.configuration.variable.Key
 import net.milosvasic.factory.configuration.variable.PathBuilder
 import net.milosvasic.factory.configuration.variable.Variable
+import net.milosvasic.factory.filesystem.Directories
+import net.milosvasic.factory.filesystem.FILE_LOCATION_HERE
 import net.milosvasic.factory.remote.Remote
 import java.nio.file.InvalidPathException
 
@@ -19,11 +21,12 @@ object Commands {
     const val SCP = "scp -P"
     const val UNAME = "uname"
     const val HOSTNAME = "hostname"
-    const val HERE = FILE_LOCATION_HERE
+    const val SCRIPT_CHECK = "check.sh"
     const val TAR_EXTENSION = ".tar.gz"
+    const val HERE = FILE_LOCATION_HERE
 
     private const val CD = "cd"
-    private const val BASH = "sh"
+    private const val SHELL = "sh"
     private const val FIND = "find "
     private const val LINK = "ln -s"
     private const val SLEEP = "sleep"
@@ -35,11 +38,10 @@ object Commands {
     private const val TAR_COMPRESS = "tar -cjf"
     private const val TAR_DECOMPRESS = "tar -xvf"
 
-    const val DIRECTORY_CORE = "Core"
-    const val DIRECTORY_UTILS = "Utils"
-
     private const val SCRIPT_GET_IP = "getip.sh"
     private const val SCRIPT_SET_HOSTNAME = "set_hostname.sh"
+    private const val SCRIPT_INSTALL_PROXY = "proxy_install.sh"
+    private const val SCRIPT_DISABLE_IPTABLES_FOR_MDNS = "disable_iptables_for_avahi_mdns.sh"
 
     fun echo(what: String) = "echo '$what'"
 
@@ -57,6 +59,7 @@ object Commands {
 
     fun getHostInfo(): String = "hostnamectl"
 
+    @Throws(InvalidPathException::class)
     fun getIpAddress(host: String): String {
 
         val path = PathBuilder()
@@ -68,12 +71,48 @@ object Commands {
 
         val filePath = FilePathBuilder()
             .addContext(systemHome)
-            .addContext(DIRECTORY_CORE)
-            .addContext(DIRECTORY_UTILS)
+            .addContext(Directories.CORE)
+            .addContext(Directories.UTILS)
             .addContext(SCRIPT_GET_IP)
             .build()
 
-        return "$BASH $filePath $host"
+        return "$SHELL $filePath $host"
+    }
+
+    @Throws(InvalidPathException::class, IllegalStateException::class)
+    fun installProxy(): String {
+
+        val utilsHome = getUtilsHome()
+
+        val proxyHomePath = PathBuilder()
+            .addContext(Context.Proxy)
+            .setKey(Key.Home)
+            .build()
+
+        val proxyHome = Variable.get(proxyHomePath)
+
+        val scriptPath = FilePathBuilder()
+            .addContext(utilsHome)
+            .addContext(SCRIPT_INSTALL_PROXY)
+            .build()
+
+        return "$SHELL $scriptPath $proxyHome"
+    }
+
+    @Throws(InvalidPathException::class, IllegalStateException::class)
+    fun disableIptablesForMdns(): String {
+
+        val utilsHome = getUtilsHome()
+
+        val behavior = Behavior()
+        val disable = behavior.behaviorDisableIptablesForMdns()
+
+        val scriptPath = FilePathBuilder()
+            .addContext(utilsHome)
+            .addContext(SCRIPT_DISABLE_IPTABLES_FOR_MDNS)
+            .build()
+
+        return "$SHELL $scriptPath $disable"
     }
 
     fun getApplicationInfo(application: String): String = "which $application"
@@ -83,7 +122,7 @@ object Commands {
     @Throws(IllegalStateException::class)
     fun scp(what: String, where: String, remote: Remote): String {
 
-        return "$SCP ${remote.port} $what ${remote.account}@${remote.getHost()}:$where"
+        return "$SCP ${remote.port} $what ${remote.getAccountName()}@${remote.getHost()}:$where"
     }
 
     fun cp(what: String, where: String): String {
@@ -136,19 +175,19 @@ object Commands {
         }
 
         val path = PathBuilder()
-                .addContext(Context.Server)
-                .setKey(Key.ServerHome)
-                .build()
+            .addContext(Context.Server)
+            .setKey(Key.Home)
+            .build()
 
         val serverHome = Variable.get(path)
 
         val filePath = FilePathBuilder()
-                .addContext(serverHome)
-                .addContext(DIRECTORY_UTILS)
-                .addContext(SCRIPT_SET_HOSTNAME)
-                .build()
+            .addContext(serverHome)
+            .addContext(Directories.UTILS)
+            .addContext(SCRIPT_SET_HOSTNAME)
+            .build()
 
-        return "$BASH $filePath $toSet"
+        return "$SHELL $filePath $toSet"
     }
 
     fun cat(what: String) = "cat $what"
@@ -160,9 +199,9 @@ object Commands {
 
         val keyName = getPrivateKyName(name)
         val param = FilePathBuilder()
-                .addContext(path)
-                .addContext(keyName)
-                .build()
+            .addContext(path)
+            .addContext(keyName)
+            .build()
 
         return "$OPENSSL genrsa -out $param"
     }
@@ -175,15 +214,15 @@ object Commands {
         val cmd = "$OPENSSL req -new -key"
 
         val reqKey = FilePathBuilder()
-                .addContext(path)
-                .addContext(requestKey)
-                .build()
+            .addContext(path)
+            .addContext(requestKey)
+            .build()
 
         val verify = "openssl req -in $reqKey -noout -subject"
         val param = FilePathBuilder()
-                .addContext(path)
-                .addContext(keyName)
-                .build()
+            .addContext(path)
+            .addContext(keyName)
+            .build()
 
         return "$cmd $param -out $reqKey -subj $params && $verify"
     }
@@ -192,16 +231,16 @@ object Commands {
     fun importRequestKey(path: String, requestKey: String, name: String): String {
 
         val homePath = PathBuilder()
-                .addContext(Context.Server)
-                .addContext(Context.Certification)
-                .setKey(Key.Home)
-                .build()
+            .addContext(Context.Server)
+            .addContext(Context.Certification)
+            .setKey(Key.Home)
+            .build()
 
         val home = Variable.get(homePath)
         val key = FilePathBuilder()
-                .addContext(path)
-                .addContext(requestKey)
-                .build()
+            .addContext(path)
+            .addContext(requestKey)
+            .build()
 
         return "cd $home && ./easyrsa import-req $key $name"
     }
@@ -210,16 +249,16 @@ object Commands {
     fun signRequestKey(name: String): String {
 
         val path = PathBuilder()
-                .addContext(Context.Server)
-                .addContext(Context.Certification)
-                .setKey(Key.Home)
-                .build()
+            .addContext(Context.Server)
+            .addContext(Context.Certification)
+            .setKey(Key.Home)
+            .build()
 
         val passPhrasePath = PathBuilder()
-                .addContext(Context.Server)
-                .addContext(Context.Certification)
-                .setKey(Key.Passphrase)
-                .build()
+            .addContext(Context.Server)
+            .addContext(Context.Certification)
+            .setKey(Key.Passphrase)
+            .build()
 
         val home = Variable.get(path)
         val passPhrase = Variable.get(passPhrasePath)
@@ -237,16 +276,16 @@ object Commands {
         val req = "req -subj $subject -new -x509 -extensions v3_ca -keyout $keyName -out $certName -days 3650"
 
         val path = PathBuilder()
-                .addContext(Context.Server)
-                .addContext(Context.Certification)
-                .setKey(Key.Certificates)
-                .build()
+            .addContext(Context.Server)
+            .addContext(Context.Certification)
+            .setKey(Key.Certificates)
+            .build()
 
         val passPhrasePath = PathBuilder()
-                .addContext(Context.Server)
-                .addContext(Context.Certification)
-                .setKey(Key.Passphrase)
-                .build()
+            .addContext(Context.Server)
+            .addContext(Context.Certification)
+            .setKey(Key.Passphrase)
+            .build()
 
         val home = Variable.get(path)
         val passPhrase = Variable.get(passPhrasePath)
@@ -293,17 +332,17 @@ object Commands {
     fun portTaken(port: Int, timeout: Int): String {
 
         val serverHomePath = PathBuilder()
-                .addContext(Context.Server)
-                .setKey(Key.ServerHome)
-                .build()
+            .addContext(Context.Server)
+            .setKey(Key.Home)
+            .build()
 
         val serverHome = Variable.get(serverHomePath)
 
         val command = FilePathBuilder()
-                .addContext(serverHome)
-                .addContext("Utils")
-                .addContext("checkPortBound.sh")
-                .build()
+            .addContext(serverHome)
+            .addContext("Utils")
+            .addContext("checkPortBound.sh")
+            .build()
 
         return "$command $port $timeout"
     }
@@ -312,39 +351,39 @@ object Commands {
     fun getOpensslSubject(): String {
 
         val pathHostname = PathBuilder()
-                .addContext(Context.Server)
-                .setKey(Key.Hostname)
-                .build()
+            .addContext(Context.Server)
+            .setKey(Key.Hostname)
+            .build()
 
         val pathCity = PathBuilder()
-                .addContext(Context.Server)
-                .addContext(Context.Certification)
-                .setKey(Key.City)
-                .build()
+            .addContext(Context.Server)
+            .addContext(Context.Certification)
+            .setKey(Key.City)
+            .build()
 
         val pathCountry = PathBuilder()
-                .addContext(Context.Server)
-                .addContext(Context.Certification)
-                .setKey(Key.Country)
-                .build()
+            .addContext(Context.Server)
+            .addContext(Context.Certification)
+            .setKey(Key.Country)
+            .build()
 
         val pathProvince = PathBuilder()
-                .addContext(Context.Server)
-                .addContext(Context.Certification)
-                .setKey(Key.Province)
-                .build()
+            .addContext(Context.Server)
+            .addContext(Context.Certification)
+            .setKey(Key.Province)
+            .build()
 
         val pathDepartment = PathBuilder()
-                .addContext(Context.Server)
-                .addContext(Context.Certification)
-                .setKey(Key.Department)
-                .build()
+            .addContext(Context.Server)
+            .addContext(Context.Certification)
+            .setKey(Key.Department)
+            .build()
 
         val pathOrganisation = PathBuilder()
-                .addContext(Context.Server)
-                .addContext(Context.Certification)
-                .setKey(Key.Organisation)
-                .build()
+            .addContext(Context.Server)
+            .addContext(Context.Certification)
+            .setKey(Key.Organisation)
+            .build()
 
         val hostname = Variable.get(pathHostname)
         val city = Variable.get(pathCity)
@@ -355,5 +394,16 @@ object Commands {
         var subject = "/C=$country/ST=$province/L=$city/O=$organisation/OU=$department/CN=$hostname"
         subject = subject.replace(" ", "\\ ")
         return subject
+    }
+
+    @Throws(InvalidPathException::class, IllegalStateException::class)
+    private fun getUtilsHome(): String {
+
+        val utilsHomePath = PathBuilder()
+            .addContext(Context.Server)
+            .setKey(Key.UtilsHome)
+            .build()
+
+        return Variable.get(utilsHomePath)
     }
 }

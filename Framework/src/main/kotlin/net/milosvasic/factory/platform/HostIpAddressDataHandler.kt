@@ -8,7 +8,7 @@ import net.milosvasic.factory.operation.OperationResult
 import net.milosvasic.factory.remote.Remote
 import net.milosvasic.factory.validation.networking.IPV4Validator
 
-class HostIpAddressDataHandler(private val remote: Remote) : DataHandler<OperationResult> {
+open class HostIpAddressDataHandler(private val remote: Remote) : DataHandler<OperationResult> {
 
     private val validator = IPV4Validator()
 
@@ -20,14 +20,20 @@ class HostIpAddressDataHandler(private val remote: Remote) : DataHandler<Operati
             try {
                 if (!validator.validate(ip)) {
 
-                    val exception = IllegalArgumentException("Invalid IP address: $ip")
+                    val exception = if (ip.isEmpty()) {
+
+                        IllegalArgumentException("Invalid IP address, empty string")
+                    } else {
+
+                        IllegalArgumentException("Invalid IP address: $ip")
+                    }
                     die(exception)
                 }
             } catch (e: IllegalArgumentException) {
 
                 die(e)
             }
-            remote.setHostIp(ip)
+            remote.setHostIpAddress(ip)
         }
     }
 

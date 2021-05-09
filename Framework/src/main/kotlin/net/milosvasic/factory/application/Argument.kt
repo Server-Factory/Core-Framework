@@ -2,7 +2,7 @@ package net.milosvasic.factory.application
 
 enum class Argument(private val arg: String) {
 
-    INSTALLATION_LOCATION("installationHome");
+    INSTALLATION_HOME("installationHome");
 
     companion object {
 

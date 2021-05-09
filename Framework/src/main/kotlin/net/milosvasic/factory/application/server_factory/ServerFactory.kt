@@ -1,6 +1,8 @@
 package net.milosvasic.factory.application.server_factory
 
 import net.milosvasic.factory.*
+import net.milosvasic.factory.application.DefaultInitializationHandler
+import net.milosvasic.factory.behavior.Behavior
 import net.milosvasic.factory.common.Application
 import net.milosvasic.factory.common.busy.Busy
 import net.milosvasic.factory.common.busy.BusyDelegation
@@ -33,12 +35,13 @@ import net.milosvasic.factory.execution.flow.implementation.CommandFlow
 import net.milosvasic.factory.execution.flow.implementation.InstallationFlow
 import net.milosvasic.factory.execution.flow.implementation.ObtainableTerminalCommand
 import net.milosvasic.factory.execution.flow.implementation.initialization.InitializationFlow
+import net.milosvasic.factory.filesystem.Directories
+import net.milosvasic.factory.firewall.DisableIptablesForMdns
 import net.milosvasic.factory.operation.OperationResult
 import net.milosvasic.factory.operation.OperationResultListener
 import net.milosvasic.factory.platform.*
+import net.milosvasic.factory.proxy.ProxyInstallation
 import net.milosvasic.factory.remote.Connection
-import net.milosvasic.factory.remote.ConnectionProvider
-import net.milosvasic.factory.remote.ssh.SSH
 import net.milosvasic.factory.terminal.TerminalCommand
 import net.milosvasic.factory.terminal.command.*
 import java.awt.HeadlessException
@@ -55,52 +58,18 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
     private val busy = Busy()
     private var runStartedAt = 0L
-    private var behaviorGetIp = false
     private val executor = TaskExecutor.instantiate(5)
     private val terminators = ConcurrentLinkedQueue<Termination>()
-    private val connectionPool = mutableMapOf<String, Connection>()
     private var configurations = mutableListOf<SoftwareConfiguration>()
     private val terminationOperation = ServerFactoryTerminationOperation()
     private val subscribers = ConcurrentLinkedQueue<OperationResultListener>()
     private val initializationOperation = ServerFactoryInitializationOperation()
 
-    private var connectionProvider: ConnectionProvider = object : ConnectionProvider {
+    private val configurationManagerInitCallback = object : FlowCallback {
+        override fun onFinish(success: Boolean) {
 
-        @Throws(IllegalArgumentException::class)
-        override fun obtain(): Connection {
-            configuration?.let { config ->
-
-                val key = config.remote.toString()
-                connectionPool[key]?.let {
-                    return it
-                }
-                val connection = SSH(config.remote)
-                connectionPool[key] = connection
-                return connection
-            }
-            throw IllegalArgumentException("No valid configuration available for creating a connection")
-        }
-    }
-
-    @Throws(IllegalStateException::class, IllegalArgumentException::class)
-    override fun initialize() {
-
-        checkInitialized()
-        busy()
-        try {
-
-            tag = getLogTag()
-            builder.getLogger()?.let {
-
-                compositeLogger.addLogger(it)
-            }
-            featureDatabase = builder.getFeatureDatabase()
-            try {
-
-                ConfigurationManager.setConfigurationRecipe(builder.getRecipe())
-                ConfigurationManager.setConfigurationFactory(getConfigurationFactory())
-                ConfigurationManager.setInstallationLocation(builder.getInstallationLocation())
-                ConfigurationManager.initialize()
+            if (success) {
+                log.i("Configuration manager is initialized")
 
                 configuration = ConfigurationManager.getConfiguration()
                 if (configuration == null) {
@@ -146,10 +115,54 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
                 getCommandFlow(ssh, DieOnFailureCallback())
                     .onFinish(callback)
                     .run()
+            } else {
+
+                val error = IllegalStateException("Configuration manager was not initialized")
+                notifyInit(error)
+            }
+        }
+    }
+
+    @Throws(IllegalStateException::class, IllegalArgumentException::class)
+    override fun initialize() {
+
+        checkInitialized()
+        busy()
+        try {
+
+            tag = getLogTag()
+            builder.getLogger()?.let {
+
+                compositeLogger.addLogger(it)
+            }
+            featureDatabase = builder.getFeatureDatabase()
+
+            try {
+
+                ConfigurationManager.setConfigurationRecipe(builder.getRecipe())
+                ConfigurationManager.setConfigurationFactory(getConfigurationFactory())
+                ConfigurationManager.setInstallationLocation(builder.getInstallationLocation())
+
+                val handler = DefaultInitializationHandler()
+                try {
+
+                    InitializationFlow()
+                        .width(ConfigurationManager)
+                        .handler(handler)
+                        .onFinish(configurationManagerInitCallback)
+                        .run()
+
+                } catch (e: BusyException) {
+
+                    notifyInit(e)
+                }
             } catch (e: IllegalArgumentException) {
 
                 notifyInit(e)
             } catch (e: IllegalStateException) {
+
+                notifyInit(e)
+            } catch (e: SecurityException) {
 
                 notifyInit(e)
             } catch (e: RuntimeException) {
@@ -164,6 +177,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
     @Throws(IllegalStateException::class)
     override fun terminate() {
+
         checkNotInitialized()
         if (!busy.isBusy()) {
             throw IllegalStateException("Server factory is not running")
@@ -183,6 +197,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
     @Synchronized
     override fun isInitialized(): Boolean {
         try {
+
             ConfigurationManager.getConfiguration()
             return true
         } catch (e: IllegalStateException) {
@@ -193,6 +208,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
     @Throws(IllegalStateException::class)
     override fun run() {
+
         checkNotInitialized()
         busy()
         if (configuration == null) {
@@ -242,11 +258,13 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
     @Synchronized
     @Throws(BusyException::class)
     override fun busy() {
+
         BusyWorker.busy(busy)
     }
 
     @Synchronized
     override fun free() {
+
         BusyWorker.free(busy)
     }
 
@@ -255,6 +273,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
     @Synchronized
     @Throws(IllegalStateException::class)
     override fun checkInitialized() {
+
         if (ConfigurationManager.isInitialized()) {
             throw IllegalStateException("Server factory has been already initialized")
         }
@@ -263,21 +282,25 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
     @Synchronized
     @Throws(IllegalStateException::class)
     override fun checkNotInitialized() {
+
         if (!ConfigurationManager.isInitialized()) {
             throw IllegalStateException("Server factory has not been initialized")
         }
     }
 
     override fun subscribe(what: OperationResultListener) {
+
         subscribers.add(what)
     }
 
     override fun unsubscribe(what: OperationResultListener) {
+
         subscribers.remove(what)
     }
 
     @Synchronized
     override fun notify(data: OperationResult) {
+
         val iterator = subscribers.iterator()
         while (iterator.hasNext()) {
             val listener = iterator.next()
@@ -285,14 +308,10 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
         }
     }
 
-    fun setConnectionProvider(provider: ConnectionProvider) {
-        connectionProvider = provider
-    }
-
     protected abstract fun getConfigurationFactory(): ConfigurationFactory<*>
 
     @Throws(IllegalArgumentException::class)
-    protected fun getConnection() = connectionProvider.obtain()
+    protected fun getConnection() = ConfigurationManager.getConnection()
 
     protected open fun getLogTag() = tag
 
@@ -311,13 +330,18 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
     @Throws(IllegalArgumentException::class)
     protected open fun getCoreUtilsInstallationDependencies(): SoftwareConfiguration {
 
+        val wget = InstallationStepDefinition(InstallationStepType.PACKAGES, value = "wget")
         val bzip2 = InstallationStepDefinition(InstallationStepType.PACKAGES, value = "bzip2")
+        val selinuxPackages = "selinux-basics, selinux-policy-default, auditd"
+        val selinux = InstallationStepDefinition(InstallationStepType.PACKAGES, value = selinuxPackages)
 
         val softwareConfigurationItemBuilder = SoftwareConfigurationItemBuilder()
             .setName(Deploy.SOFTWARE_CONFIGURATION_NAME)
             .setVersion(BuildInfo.version)
             .addInstallationStep(Platform.CENTOS, bzip2)
+            .addInstallationStep(Platform.CENTOS, wget)
             .addInstallationStep(Platform.UBUNTU, bzip2)
+            .addInstallationStep(Platform.UBUNTU, selinux)
 
         val softwareBuilder = SoftwareBuilder()
             .addItem(softwareConfigurationItemBuilder)
@@ -429,9 +453,20 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
         where: String,
         ssh: Connection
 
-    ) = Deploy(what, where)
+    ) = Deploy(what, where, true)
         .setConnection(ssh)
-        .getFlow()
+        .toCommandFlow()
+
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
+    protected open fun getProxyInstallationFlow(ssh: Connection): CommandFlow {
+
+        val conf = ConfigurationManager.getConfiguration()
+        val proxy = conf.getProxy()
+
+        return ProxyInstallation(proxy)
+            .setConnection(ssh)
+            .toCommandFlow()
+    }
 
     protected open fun getIpAddressObtainCommand(os: OperatingSystem) =
         object : Obtain<TerminalCommand> {
@@ -475,7 +510,8 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
         val os = ssh.getRemoteOS()
         val hostname = getHostname()
         val terminal = ssh.getTerminal()
-        val pingCommand = PingCommand(hostname)
+        val host = ssh.getRemote().getHost(preferIpAddress = false)
+        val pingCommand = PingCommand(host)
         val hostNameCommand = HostNameCommand()
         val hostInfoCommand = getHostInfoCommand()
         val testCommand = EchoCommand("Hello")
@@ -483,7 +519,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
         /*
          * {
          *  "type": "deploy",
-         *  "value": "{{SYSTEM.HOME}}/Core/Utils:{{SERVER.SERVER_HOME}}/Utils"
+         *  "value": "{{SYSTEM.HOME}}/Core/Utils:{{SERVER.UTILS_HOME}}"
          * }
          */
         val systemHomePath = PathBuilder()
@@ -495,25 +531,20 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
         val what = FilePathBuilder()
             .addContext(systemHome)
-            .addContext(Commands.DIRECTORY_CORE)
-            .addContext(Commands.DIRECTORY_UTILS)
+            .addContext(Directories.CORE)
+            .addContext(Directories.UTILS)
             .build()
 
         val whereRootPath = PathBuilder()
             .addContext(Context.Server)
-            .setKey(Key.ServerHome)
+            .setKey(Key.Home)
             .build()
 
         val whereRoot = Variable.get(whereRootPath)
 
         val where = FilePathBuilder()
             .addContext(whereRoot)
-            .addContext(Commands.DIRECTORY_UTILS)
-            .build()
-
-        val behaviorPath = PathBuilder()
-            .addContext(Context.Behavior)
-            .setKey(Key.GetIp)
+            .addContext(Directories.UTILS)
             .build()
 
         val coreUtilsDeployment = getCoreUtilsDeploymentFlow(what, where, ssh)
@@ -525,6 +556,8 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
             )
         }
 
+        val proxyInstallationFlow = getProxyInstallationFlow(ssh)
+
         val installationFlow = getCoreUtilsInstallationFlow()
         val installerInitFlow = getCoreUtilsInstallerInitializationFlow()
 
@@ -535,15 +568,13 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
             .perform(hostInfoCommand, getHostInfoDataHandler(os))
             .perform(hostNameCommand, HostNameDataHandler(os))
 
-        val msg = "Get IP behavior setting"
-        try {
+        val behavior = Behavior()
+        val behaviorGetIp = behavior.behaviorGetIp()
+        val behaviorDisableIpTablesForMdns = behavior.behaviorDisableIptablesForMdns()
 
-            behaviorGetIp = Variable.get(behaviorPath).toBoolean()
-            log.v("$msg (1): $behaviorGetIp")
-        } catch (e: IllegalStateException) {
+        log.v("Behavior: GET_IP=$behaviorGetIp")
+        log.v("Behavior: DISABLE_IPTABLES_FOR_MDNS=$behaviorDisableIpTablesForMdns")
 
-            log.v("$msg (2): $behaviorGetIp")
-        }
         if (behaviorGetIp) {
 
             val getIpCommand = getIpAddressObtainCommand(os)
@@ -555,12 +586,26 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
                 .perform(getIpObtainableCommand)
         }
 
-        return flow
+        flow
             .width(ssh)
             .perform(testCommand)
             .connect(installerInitFlow)
             .connect(installationFlow)
             .connect(coreUtilsDeployment)
+
+        if (behaviorDisableIpTablesForMdns) {
+
+            val disableCommand = DisableIptablesForMdns()
+
+            val disableFlow = CommandFlow()
+                .width(ssh)
+                .perform(disableCommand)
+
+            flow.connect(disableFlow)
+        }
+
+        return flow
+            .connect(proxyInstallationFlow)
             .onFinish(dieCallback)
     }
 
