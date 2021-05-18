@@ -50,8 +50,15 @@ class ServerFactoryBuilder {
 
     fun getFeatureDatabase() = featureDatabase
 
-    fun setInstallationHome(home: String) {
+    fun setFeatureDatabase(database: Boolean): ServerFactoryBuilder {
+
+        featureDatabase = database
+        return this
+    }
+
+    fun setInstallationHome(home: String): ServerFactoryBuilder {
 
         installationHome = home
+        return this
     }
 }
