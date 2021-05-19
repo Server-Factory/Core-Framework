@@ -5,6 +5,7 @@ import net.milosvasic.factory.configuration.Configuration
 import net.milosvasic.factory.configuration.SoftwareConfiguration
 import net.milosvasic.factory.configuration.definition.Definition
 import net.milosvasic.factory.configuration.variable.Node
+import net.milosvasic.factory.deployment.Target
 import net.milosvasic.factory.remote.Remote
 import java.util.concurrent.LinkedBlockingQueue
 
@@ -19,9 +20,10 @@ class CommonServerFactoryConfiguration (
     containers: LinkedBlockingQueue<String>?,
     variables: Node? = null,
     overrides: MutableMap<String, MutableMap<String, SoftwareConfiguration>>?,
-    enabled: Boolean? = null
+    enabled: Boolean? = null,
+    deployment: MutableList<Target>?
 
 ) : Configuration(
 
-    definition, name, remote, uses, includes, software, containers, variables, overrides, enabled
+    definition, name, remote, uses, includes, software, containers, variables, overrides, enabled, deployment
 )

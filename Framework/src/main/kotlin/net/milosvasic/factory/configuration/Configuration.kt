@@ -4,6 +4,7 @@ import net.milosvasic.factory.EMPTY
 import net.milosvasic.factory.common.filesystem.FilePathBuilder
 import net.milosvasic.factory.configuration.definition.Definition
 import net.milosvasic.factory.configuration.variable.Node
+import net.milosvasic.factory.deployment.Target
 import net.milosvasic.factory.merge
 import net.milosvasic.factory.proxy.Proxy
 import net.milosvasic.factory.remote.Remote
@@ -22,7 +23,8 @@ abstract class Configuration(
     containers: LinkedBlockingQueue<String>?,
     variables: Node? = null,
     overrides: MutableMap<String, MutableMap<String, SoftwareConfiguration>>?,
-    enabled: Boolean? = null
+    enabled: Boolean? = null,
+    deployment: MutableList<Target>?
 
 ) : ConfigurationInclude(
 
@@ -33,7 +35,8 @@ abstract class Configuration(
     containers,
     variables,
     overrides,
-    enabled
+    enabled,
+    deployment
 ) {
 
     private var proxy: Proxy? = null
@@ -84,6 +87,9 @@ abstract class Configuration(
                     overrides?.let { ods ->
                         it.merge(ods)
                     }
+                }
+                configuration.deployment?.let {
+                    deployment?.addAll(it)
                 }
                 configuration.proxy?.let {
                     proxy?.let { p ->

@@ -77,6 +77,7 @@ abstract class FlowPerformBuilder<T, M, D> : FlowBuilder<T, D, MutableMap<Wrappe
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
     override fun tryNext() {
         if (subjects.get().isEmpty()) {
+
             throw IllegalArgumentException("No subjects provided")
         }
         subjects.get().keys.forEach {
