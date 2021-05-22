@@ -2,7 +2,7 @@ package net.milosvasic.factory.validation
 
 import com.google.gson.Gson
 import com.google.gson.JsonElement
-import net.milosvasic.factory.common.Validation
+import net.milosvasic.factory.common.validation.Validation
 import java.io.IOException
 
 class JsonValidator : Validation<String> {

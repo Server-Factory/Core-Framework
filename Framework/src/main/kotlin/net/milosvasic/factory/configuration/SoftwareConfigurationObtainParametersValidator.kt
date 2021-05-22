@@ -1,6 +1,6 @@
 package net.milosvasic.factory.configuration
 
-import net.milosvasic.factory.common.Validation
+import net.milosvasic.factory.common.validation.Validation
 
 class SoftwareConfigurationObtainParametersValidator : Validation<String> {
 

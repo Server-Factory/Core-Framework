@@ -1,6 +1,6 @@
 package net.milosvasic.factory.configuration.definition
 
-import net.milosvasic.factory.common.Validation
+import net.milosvasic.factory.common.validation.Validation
 import net.milosvasic.factory.validation.Validator
 
 class DefinitionValidator : Validation<String> {

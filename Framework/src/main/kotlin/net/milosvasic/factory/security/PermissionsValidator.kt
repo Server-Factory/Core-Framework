@@ -1,6 +1,6 @@
 package net.milosvasic.factory.security
 
-import net.milosvasic.factory.common.Validation
+import net.milosvasic.factory.common.validation.Validation
 
 class PermissionsValidator : Validation<Permission> {
 

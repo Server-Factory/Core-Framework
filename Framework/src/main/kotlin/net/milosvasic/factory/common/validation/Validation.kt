@@ -1,4 +1,4 @@
-package net.milosvasic.factory.common
+package net.milosvasic.factory.common.validation
 
 interface Validation<T> {
 

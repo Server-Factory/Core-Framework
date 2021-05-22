@@ -52,13 +52,13 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Application, BusyDelegation {
 
-    private var featureDatabase = true
     protected lateinit var installer: Installer
     protected var configuration: Configuration? = null
+    protected val executor = TaskExecutor.instantiate(5)
 
     private val busy = Busy()
     private var runStartedAt = 0L
-    private val executor = TaskExecutor.instantiate(5)
+    private var featureDatabase = true
     private val terminators = ConcurrentLinkedQueue<Termination>()
     private var configurations = mutableListOf<SoftwareConfiguration>()
     private val terminationOperation = ServerFactoryTerminationOperation()

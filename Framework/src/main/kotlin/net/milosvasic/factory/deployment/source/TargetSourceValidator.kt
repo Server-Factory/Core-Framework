@@ -1,26 +1,45 @@
 package net.milosvasic.factory.deployment.source
 
-import net.milosvasic.factory.common.Validation
-import net.milosvasic.factory.validation.Validator
+import net.milosvasic.factory.common.validation.ValidationAsync
+import net.milosvasic.factory.common.validation.ValidationCallback
+import net.milosvasic.factory.execution.TaskExecutor
+import net.milosvasic.factory.execution.flow.callback.FlowCallback
+import net.milosvasic.factory.execution.flow.implementation.CommandFlow
+import net.milosvasic.factory.terminal.Terminal
+import net.milosvasic.factory.terminal.command.ApplicationInfoCommand
+import net.milosvasic.factory.terminal.command.GitVerifyRepository
 
-class TargetSourceValidator : Validation<TargetSource> {
+class TargetSourceValidator : ValidationAsync<TargetSource> {
 
-    @Throws(IllegalArgumentException::class)
-    override fun validate(vararg what: TargetSource): Boolean {
+    private val executor = TaskExecutor.instantiate(1)
 
-        Validator.Arguments.validateNotEmpty(*what)
-        what.forEach {
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
+    override fun validate(what: TargetSource, callback: ValidationCallback) {
 
-            when(it) {
+        when (what) {
+            is GitTargetSource -> {
 
-                is GitTargetSource -> {
+                val flowCallback = object : FlowCallback {
 
-                    val repo = it.value
-                    // TODO: WSF-4
-                    return false
+                    override fun onFinish(success: Boolean) {
+
+                        callback.onValidated(success)
+                    }
                 }
+
+                val flow = CommandFlow()
+                val terminal = Terminal()
+
+                flow.width(terminal)
+                    .perform(ApplicationInfoCommand("git"))
+                    .perform(GitVerifyRepository(what.value))
+                    .onFinish(flowCallback)
+                    .run()
+            }
+            else -> {
+
+                throw IllegalArgumentException("Unsupported target source: ${what.type}")
             }
         }
-        return true
     }
 }

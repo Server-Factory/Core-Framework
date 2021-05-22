@@ -1,6 +1,6 @@
 package net.milosvasic.factory.component.docker
 
-import net.milosvasic.factory.common.Validation
+import net.milosvasic.factory.common.validation.Validation
 
 class DockerCommandValidator : Validation<DockerCommandBuilder> {
 

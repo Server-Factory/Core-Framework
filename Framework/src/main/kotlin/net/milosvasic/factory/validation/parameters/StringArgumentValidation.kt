@@ -1,6 +1,6 @@
 package net.milosvasic.factory.validation.parameters
 
-import net.milosvasic.factory.common.Validation
+import net.milosvasic.factory.common.validation.Validation
 
 class StringArgumentValidation : Validation<String> {
 

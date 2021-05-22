@@ -16,7 +16,6 @@ import net.milosvasic.factory.configuration.recipe.FileConfigurationRecipe
 import net.milosvasic.factory.configuration.recipe.RawJsonConfigurationRecipe
 import net.milosvasic.factory.configuration.variable.*
 import net.milosvasic.factory.execution.flow.implementation.CommandFlow
-import net.milosvasic.factory.fail
 import net.milosvasic.factory.filesystem.Directories
 import net.milosvasic.factory.log
 import net.milosvasic.factory.operation.OperationResult
@@ -31,7 +30,6 @@ import net.milosvasic.factory.terminal.command.IpAddressObtainCommand
 import net.milosvasic.factory.validation.JsonValidator
 import net.milosvasic.factory.validation.networking.IPV4Validator
 import java.io.File
-import java.lang.NullPointerException
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 

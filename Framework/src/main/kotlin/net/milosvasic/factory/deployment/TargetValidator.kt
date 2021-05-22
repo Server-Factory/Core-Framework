@@ -1,29 +1,30 @@
 package net.milosvasic.factory.deployment
 
-import net.milosvasic.factory.common.Validation
+import net.milosvasic.factory.common.validation.ValidationAsync
+import net.milosvasic.factory.common.validation.ValidationCallback
 import net.milosvasic.factory.deployment.source.TargetSourceValidator
-import net.milosvasic.factory.validation.Validator
 
-class TargetValidator : Validation<Target> {
+class TargetValidator : ValidationAsync<Target> {
 
-    @Throws(IllegalArgumentException::class)
-    override fun validate(vararg what: Target): Boolean {
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
+    override fun validate(what: Target, callback: ValidationCallback) {
 
-        Validator.Arguments.validateNotEmpty(*what)
-        what.forEach {
+        if (what.name.isEmpty() || what.name.isBlank()) {
 
-            if (it.name.isEmpty() || it.name.isBlank()) {
-
-                throw IllegalArgumentException("Invalid name for: $it")
-            }
-            val validator = TargetSourceValidator()
-            val source = it.getSource()
-            if (!validator.validate(source)) {
-
-                throw IllegalArgumentException("Invalid target source type: ${source.type}")
-            }
-
+            throw IllegalArgumentException("Invalid name for: $what")
         }
-        return true
+
+        val source = what.getSource()
+        val validator = TargetSourceValidator()
+
+        val targetSourceValidationCallback = object : ValidationCallback {
+
+            override fun onValidated(valid: Boolean) {
+
+                callback.onValidated(valid)
+            }
+        }
+
+        validator.validate(source, targetSourceValidationCallback)
     }
 }

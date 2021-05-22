@@ -1,6 +1,6 @@
 package net.milosvasic.factory.account.credentials.password
 
-import net.milosvasic.factory.common.Validation
+import net.milosvasic.factory.common.validation.Validation
 import net.milosvasic.factory.validation.Validator
 import java.util.regex.Pattern
 

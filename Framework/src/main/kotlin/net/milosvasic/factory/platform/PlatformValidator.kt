@@ -1,6 +1,6 @@
 package net.milosvasic.factory.platform
 
-import net.milosvasic.factory.common.Validation
+import net.milosvasic.factory.common.validation.Validation
 import net.milosvasic.factory.validation.parameters.ArgumentsExpectedException
 
 class PlatformValidator(private val notAllowed: Set<Platform> = setOf(Platform.UNKNOWN)) : Validation<Platform> {

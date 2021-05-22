@@ -1,6 +1,6 @@
 package net.milosvasic.factory.validation.networking
 
-import net.milosvasic.factory.common.Validation
+import net.milosvasic.factory.common.validation.Validation
 import net.milosvasic.factory.log
 import java.util.regex.Pattern
 import java.util.regex.PatternSyntaxException

@@ -1,6 +1,6 @@
 package net.milosvasic.factory.configuration
 
-import net.milosvasic.factory.common.Validation
+import net.milosvasic.factory.common.validation.Validation
 import net.milosvasic.factory.log
 import net.milosvasic.factory.platform.Platform
 import net.milosvasic.factory.platform.PlatformValidator

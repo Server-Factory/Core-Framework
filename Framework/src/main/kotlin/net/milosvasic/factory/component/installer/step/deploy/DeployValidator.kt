@@ -1,6 +1,6 @@
 package net.milosvasic.factory.component.installer.step.deploy
 
-import net.milosvasic.factory.common.Validation
+import net.milosvasic.factory.common.validation.Validation
 import net.milosvasic.factory.configuration.definition.Definition
 import net.milosvasic.factory.validation.Validator
 

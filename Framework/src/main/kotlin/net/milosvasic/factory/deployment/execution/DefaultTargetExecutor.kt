@@ -8,9 +8,9 @@ class DefaultTargetExecutor : TargetExecutor() {
     @Throws(IllegalArgumentException::class)
     override fun execute(what: Target) {
 
-        log.v("Processing the target: ${what.name}")
+        log.i("Processing the target: ${what.name}")
         val source = what.getSource()
-        log.v("${what.name} target source: $source")
+        log.v("${what.name} target source: ${source.value}")
 
     }
 }

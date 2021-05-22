@@ -1,7 +1,7 @@
 package net.milosvasic.factory.common.filesystem
 
 import net.milosvasic.factory.EMPTY
-import net.milosvasic.factory.common.Validation
+import net.milosvasic.factory.common.validation.Validation
 import net.milosvasic.factory.validation.Validator
 import net.milosvasic.factory.validation.parameters.SingleParameterExpectedException
 import java.nio.file.InvalidPathException

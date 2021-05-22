@@ -1,6 +1,6 @@
 package net.milosvasic.factory.component.docker.step.dockerfile
 
-import net.milosvasic.factory.common.Validation
+import net.milosvasic.factory.common.validation.Validation
 import net.milosvasic.factory.validation.Validator
 
 class BuildValidator : Validation<String> {

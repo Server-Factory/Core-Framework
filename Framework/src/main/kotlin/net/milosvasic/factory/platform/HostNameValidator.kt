@@ -1,7 +1,7 @@
 package net.milosvasic.factory.platform
 
 import net.milosvasic.factory.EMPTY
-import net.milosvasic.factory.common.Validation
+import net.milosvasic.factory.common.validation.Validation
 import net.milosvasic.factory.validation.Validator
 
 class HostNameValidator : Validation<String> {

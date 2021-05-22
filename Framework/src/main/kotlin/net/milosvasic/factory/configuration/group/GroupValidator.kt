@@ -1,6 +1,6 @@
 package net.milosvasic.factory.configuration.group
 
-import net.milosvasic.factory.common.Validation
+import net.milosvasic.factory.common.validation.Validation
 
 class GroupValidator : Validation<Group> {
 

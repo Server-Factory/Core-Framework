@@ -1,6 +1,6 @@
 package net.milosvasic.factory.component.docker.step.network
 
-import net.milosvasic.factory.common.Validation
+import net.milosvasic.factory.common.validation.Validation
 import net.milosvasic.factory.validation.Validator
 
 class NetworkValidator(val separator: String) : Validation<String> {

@@ -26,6 +26,7 @@ object Commands {
     const val HERE = FILE_LOCATION_HERE
 
     private const val CD = "cd"
+    private const val GIT = "git"
     private const val SHELL = "sh"
     private const val FIND = "find "
     private const val LINK = "ln -s"
@@ -394,6 +395,11 @@ object Commands {
         var subject = "/C=$country/ST=$province/L=$city/O=$organisation/OU=$department/CN=$hostname"
         subject = subject.replace(" ", "\\ ")
         return subject
+    }
+
+    fun gitVerifyRepository(repository: String): String {
+
+        return "$GIT ls-remote $repository"
     }
 
     @Throws(InvalidPathException::class, IllegalStateException::class)

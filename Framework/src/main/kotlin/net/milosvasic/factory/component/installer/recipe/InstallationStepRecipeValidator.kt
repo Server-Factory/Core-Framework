@@ -1,6 +1,6 @@
 package net.milosvasic.factory.component.installer.recipe
 
-import net.milosvasic.factory.common.Validation
+import net.milosvasic.factory.common.validation.Validation
 import net.milosvasic.factory.validation.Validator
 
 class InstallationStepRecipeValidator : Validation<InstallationStepRecipe> {
