@@ -8,8 +8,11 @@ import net.milosvasic.factory.configuration.variable.Context
 import net.milosvasic.factory.configuration.variable.Key
 import net.milosvasic.factory.configuration.variable.PathBuilder
 import net.milosvasic.factory.configuration.variable.Variable
+import net.milosvasic.factory.deployment.Target
+import net.milosvasic.factory.deployment.source.GitTargetSource
 import net.milosvasic.factory.filesystem.Directories
 import net.milosvasic.factory.filesystem.FILE_LOCATION_HERE
+import net.milosvasic.factory.log
 import net.milosvasic.factory.remote.Remote
 import java.nio.file.InvalidPathException
 
@@ -42,6 +45,7 @@ object Commands {
     private const val SCRIPT_GET_IP = "getip.sh"
     private const val SCRIPT_SET_HOSTNAME = "set_hostname.sh"
     private const val SCRIPT_INSTALL_PROXY = "proxy_install.sh"
+    private const val SCRIPT_TARGET_INSTALL_GIT = "target_install_git.sh"
     private const val SCRIPT_DISABLE_IPTABLES_FOR_MDNS = "disable_iptables_for_avahi_mdns.sh"
 
     fun echo(what: String) = "echo '$what'"
@@ -299,6 +303,7 @@ object Commands {
     }
 
     fun getPrivateKyName(name: String): String {
+
         var fullName = name
         val extension = ".key"
         val prefix = "private."
@@ -312,6 +317,7 @@ object Commands {
     }
 
     fun getRequestKeyName(reqName: String): String {
+
         var fullName = reqName
         val extension = ".req"
         val prefix = "request."
@@ -341,7 +347,7 @@ object Commands {
 
         val command = FilePathBuilder()
             .addContext(serverHome)
-            .addContext("Utils")
+            .addContext(Directories.UTILS)
             .addContext("checkPortBound.sh")
             .build()
 
@@ -400,6 +406,51 @@ object Commands {
     fun gitVerifyRepository(repository: String): String {
 
         return "$GIT ls-remote $repository"
+    }
+
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
+    fun targetInstallGit(target: Target) : String {
+
+        if (target.getSource() !is GitTargetSource) {
+
+            throw IllegalArgumentException("Not a Git target source: ${target.name}")
+        }
+
+        val keyHome = Key.Home
+        val ctxSystem = Context.System
+        val ctxInstallation = Context.Installation
+
+        val systemHomePath = PathBuilder()
+            .addContext(ctxSystem)
+            .setKey(keyHome)
+            .build()
+
+        val systemHome = Variable.get(systemHomePath)
+
+        val scriptPath = FilePathBuilder()
+            .addContext(systemHome)
+            .addContext(Directories.CORE)
+            .addContext(Directories.UTILS)
+            .addContext(Directories.TARGET)
+            .addContext(SCRIPT_TARGET_INSTALL_GIT)
+            .build()
+
+        val pathSystemInstallationHome = PathBuilder()
+            .addContext(ctxSystem)
+            .addContext(ctxInstallation)
+            .setKey(keyHome)
+            .build()
+
+        val systemInstallationHome = Variable.get(pathSystemInstallationHome)
+
+        val targetHomePath = FilePathBuilder()
+            .addContext(systemInstallationHome)
+            .addContext(Target.DIRECTORY_HOME)
+            .addContext(target.name)
+            .build()
+
+        log.d("${target.name} target home: $targetHomePath")
+        return "$SHELL $scriptPath $targetHomePath ${target.getSource().value}"
     }
 
     @Throws(InvalidPathException::class, IllegalStateException::class)

@@ -14,6 +14,11 @@ class TargetValidator : ValidationAsync<Target> {
             throw IllegalArgumentException("Invalid name for: $what")
         }
 
+        if (what.name.contains(" ") || what.name.contains("\t")) {
+
+            throw IllegalArgumentException("Invalid name for: $what, no whitespace allowed")
+        }
+
         val source = what.getSource()
         val validator = TargetSourceValidator()
 

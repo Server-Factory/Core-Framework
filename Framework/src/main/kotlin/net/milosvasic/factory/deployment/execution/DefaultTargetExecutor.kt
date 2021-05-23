@@ -1,14 +1,14 @@
 package net.milosvasic.factory.deployment.execution
 
-import net.milosvasic.factory.common.filesystem.FilePathBuilder
-import net.milosvasic.factory.configuration.variable.Context
-import net.milosvasic.factory.configuration.variable.Key
-import net.milosvasic.factory.configuration.variable.PathBuilder
-import net.milosvasic.factory.configuration.variable.Variable
 import net.milosvasic.factory.deployment.Target
+import net.milosvasic.factory.deployment.source.TargetSourceType
 import net.milosvasic.factory.execution.TaskExecutor
+import net.milosvasic.factory.execution.flow.callback.FlowCallback
+import net.milosvasic.factory.execution.flow.implementation.CommandFlow
+import net.milosvasic.factory.fail
 import net.milosvasic.factory.log
 import net.milosvasic.factory.terminal.Terminal
+import net.milosvasic.factory.terminal.command.TargetInstallGitCommand
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executor
 import java.util.concurrent.RejectedExecutionException
@@ -18,38 +18,58 @@ class DefaultTargetExecutor(private val executor: Executor = TaskExecutor.instan
     @Throws(IllegalArgumentException::class, RejectedExecutionException::class, IllegalStateException::class)
     override fun execute(what: Target) {
 
-        log.i("Processing the target: ${what.name}")
-        val source = what.getSource()
-        log.i("${what.name} target source: ${source.value}")
+        when (what.getSource().type) {
 
-        val terminal = Terminal()
+            TargetSourceType.GIT.type -> {
 
-        val keyHome = Key.Home
-        val ctxSystem = Context.System
-        val ctxInstallation = Context.Installation
+                log.i("Installing the target: ${what.name}")
+                val source = what.getSource()
+                log.i("${what.name} target source: ${source.value}")
 
-        val pathSystemInstallationHome = PathBuilder()
-            .addContext(ctxSystem)
-            .addContext(ctxInstallation)
-            .setKey(keyHome)
-            .build()
+                val countdownLatch = CountDownLatch(1)
 
-        val systemInstallationHome = Variable.get(pathSystemInstallationHome)
+                executor.execute {
 
-        val targetHomePath = FilePathBuilder()
-            .addContext(systemInstallationHome)
-            .addContext(Target.DIRECTORY_HOME)
-            .build()
+                    val terminal = Terminal()
 
-        log.d("Targets home: $targetHomePath")
+                    val callback = object : FlowCallback {
 
-        val countdownLatch = CountDownLatch(1)
+                        override fun onFinish(success: Boolean) {
 
-        executor.execute {
+                            if (!success) {
 
-            countdownLatch.countDown()
+                                val e = IllegalStateException("${what.name} target installation failed")
+                                fail(e)
+                            }
+                            countdownLatch.countDown()
+                        }
+                    }
+
+                    try {
+
+                        val command = TargetInstallGitCommand(what)
+
+                        CommandFlow()
+                            .width(terminal)
+                            .perform(command)
+                            .onFinish(callback)
+                            .run()
+
+                    } catch (e: IllegalArgumentException) {
+
+                        fail(e)
+                    } catch (e: IllegalStateException) {
+
+                        fail(e)
+                    }
+                }
+
+                countdownLatch.await()
+            }
+            else -> {
+
+                throw IllegalArgumentException("Unsupported target source: ${what.getSource().type}")
+            }
         }
-
-        countdownLatch.await()
     }
 }
