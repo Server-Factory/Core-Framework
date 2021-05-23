@@ -7,19 +7,20 @@ import net.milosvasic.factory.deployment.TargetValidator
 import net.milosvasic.factory.deployment.execution.DefaultTargetExecutor
 import net.milosvasic.factory.log
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 
 class CommonServerFactory(builder: ServerFactoryBuilder) : ServerFactory(builder) {
 
     override fun getConfigurationFactory() = CommonServerFactoryServerConfigurationFactory()
 
-    @Throws(IllegalStateException::class, IllegalArgumentException::class)
+    @Throws(IllegalStateException::class, IllegalArgumentException::class, RejectedExecutionException::class)
     override fun run() {
 
         configuration?.let {
             it.deployment?.let { targets ->
 
-                val executor = DefaultTargetExecutor()
+                val executor = DefaultTargetExecutor(executor)
 
                 targets.forEach { target ->
 

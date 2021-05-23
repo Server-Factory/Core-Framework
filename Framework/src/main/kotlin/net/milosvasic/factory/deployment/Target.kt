@@ -11,6 +11,11 @@ data class Target(
     private val source: RawTargetSource
 ) {
 
+    companion object {
+
+        const val DIRECTORY_HOME = "Targets"
+    }
+
     fun getType(): TargetType {
 
         return TargetType.getByValue(type)
