@@ -1,5 +1,6 @@
 package net.milosvasic.factory.deployment.execution
 
+import net.milosvasic.factory.configuration.ConfigurationManager
 import net.milosvasic.factory.deployment.Target
 import net.milosvasic.factory.deployment.source.TargetSourceType
 import net.milosvasic.factory.execution.TaskExecutor
@@ -45,6 +46,9 @@ class DefaultTargetExecutor(private val executor: Executor = TaskExecutor.instan
                             try {
 
                                 val configuration = what.getConfiguration()
+                                val mainConfiguration = ConfigurationManager.getConfiguration()
+                                mainConfiguration.merge(configuration)
+
                                 log.d("${what.name} target configuration: '${configuration.name}'")
 
                             } catch (e: IllegalArgumentException) {
