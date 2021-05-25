@@ -418,7 +418,6 @@ object Commands {
 
         val keyHome = Key.Home
         val ctxSystem = Context.System
-        val ctxInstallation = Context.Installation
 
         val systemHomePath = PathBuilder()
             .addContext(ctxSystem)
@@ -435,19 +434,7 @@ object Commands {
             .addContext(SCRIPT_TARGET_INSTALL_GIT)
             .build()
 
-        val pathSystemInstallationHome = PathBuilder()
-            .addContext(ctxSystem)
-            .addContext(ctxInstallation)
-            .setKey(keyHome)
-            .build()
-
-        val systemInstallationHome = Variable.get(pathSystemInstallationHome)
-
-        val targetHomePath = FilePathBuilder()
-            .addContext(systemInstallationHome)
-            .addContext(Target.DIRECTORY_HOME)
-            .addContext(target.name)
-            .build()
+        val targetHomePath = target.getHomePath()
 
         log.d("${target.name} target home: $targetHomePath")
         return "$SHELL $scriptPath $targetHomePath ${target.getSource().value}"

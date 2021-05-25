@@ -5,7 +5,7 @@ import net.milosvasic.factory.configuration.ConfigurationFactory
 import net.milosvasic.factory.log
 import java.lang.reflect.Type
 
-class CommonServerFactoryServerConfigurationFactory : ConfigurationFactory<CommonServerFactoryConfiguration>() {
+class CommonServerConfigurationFactory : ConfigurationFactory<CommonServerFactoryConfiguration>() {
 
     override fun getType(): Type {
 

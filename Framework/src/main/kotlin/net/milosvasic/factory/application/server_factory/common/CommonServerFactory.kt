@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class CommonServerFactory(builder: ServerFactoryBuilder) : ServerFactory(builder) {
 
-    override fun getConfigurationFactory() = CommonServerFactoryServerConfigurationFactory()
+    override fun getConfigurationFactory() = CommonServerConfigurationFactory()
 
     @Throws(IllegalStateException::class, IllegalArgumentException::class, RejectedExecutionException::class)
     override fun run() {

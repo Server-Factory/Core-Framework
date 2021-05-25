@@ -35,13 +35,14 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 object ConfigurationManager : Initializer, BusyDelegation {
 
+    private lateinit var definitionProvider: DefinitionProvider
+
     private val busy = Busy()
     private var loaded = AtomicBoolean()
     private val loading = AtomicBoolean()
     private var installationLocation = ""
     private var configuration: Configuration? = null
     private var recipe: ConfigurationRecipe<*>? = null
-    private lateinit var definitionProvider: DefinitionProvider
     private val connectionPool = mutableMapOf<String, Connection>()
     private var configurationFactory: ConfigurationFactory<*>? = null
     private var configurations = mutableListOf<SoftwareConfiguration>()

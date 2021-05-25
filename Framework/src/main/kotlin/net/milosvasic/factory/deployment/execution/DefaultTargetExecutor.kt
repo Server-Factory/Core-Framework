@@ -41,6 +41,20 @@ class DefaultTargetExecutor(private val executor: Executor = TaskExecutor.instan
                                 val e = IllegalStateException("${what.name} target installation failed")
                                 fail(e)
                             }
+
+                            try {
+
+                                val configuration = what.getConfiguration()
+                                log.d("${what.name} target configuration: '${configuration.name}'")
+
+                            } catch (e: IllegalArgumentException) {
+
+                                fail(e)
+                            } catch (e: IllegalStateException) {
+
+                                fail(e)
+                            }
+
                             countdownLatch.countDown()
                         }
                     }
