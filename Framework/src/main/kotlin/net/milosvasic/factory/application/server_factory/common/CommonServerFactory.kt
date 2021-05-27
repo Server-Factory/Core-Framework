@@ -7,15 +7,19 @@ import net.milosvasic.factory.deployment.TargetValidator
 import net.milosvasic.factory.deployment.execution.DefaultTargetExecutor
 import net.milosvasic.factory.log
 import java.util.concurrent.CountDownLatch
-import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 
 class CommonServerFactory(builder: ServerFactoryBuilder) : ServerFactory(builder) {
 
     override fun getConfigurationFactory() = CommonServerConfigurationFactory()
 
-    @Throws(IllegalStateException::class, IllegalArgumentException::class, RejectedExecutionException::class)
-    override fun run() {
+    override fun initialize() {
+
+        super.initialize()
+        initTargets()
+    }
+
+    private fun initTargets() {
 
         configuration?.let {
             it.deployment?.let { targets ->
@@ -66,6 +70,5 @@ class CommonServerFactory(builder: ServerFactoryBuilder) : ServerFactory(builder
                 }
             }
         }
-        super.run()
     }
 }

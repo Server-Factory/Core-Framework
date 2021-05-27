@@ -49,6 +49,7 @@ class DefaultTargetExecutor(private val executor: Executor = TaskExecutor.instan
                                 val mainConfiguration = ConfigurationManager.getConfiguration()
                                 mainConfiguration.merge(configuration)
 
+
                                 log.d("${what.name} target configuration: '${configuration.name}'")
 
                             } catch (e: IllegalArgumentException) {
