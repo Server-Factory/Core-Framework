@@ -8,7 +8,8 @@ import net.milosvasic.factory.execution.flow.processing.FlowProcessingCallback
 import net.milosvasic.factory.execution.flow.processing.FlowProcessingData
 import net.milosvasic.factory.execution.flow.processing.ProcessingRecipe
 
-abstract class FlowPerformBuilder<T, M, D> : FlowBuilder<T, D, MutableMap<Wrapper<T>, MutableList<Obtain<M>>>>(), FlowPerform<T, M, D> {
+abstract class FlowPerformBuilder<T, M, D>(name: String) :
+    FlowBuilder<T, D, MutableMap<Wrapper<T>, MutableList<Obtain<M>>>>(name), FlowPerform<T, M, D> {
 
     private var currentOperation: Obtain<M>? = null
     private var operationsIterator: Iterator<Obtain<M>>? = null
@@ -78,7 +79,13 @@ abstract class FlowPerformBuilder<T, M, D> : FlowBuilder<T, D, MutableMap<Wrappe
     override fun tryNext() {
         if (subjects.get().isEmpty()) {
 
-            throw IllegalArgumentException("No subjects provided")
+            if (name.isEmpty() || name.isBlank()) {
+
+                throw IllegalArgumentException("No subjects provided")
+            } else {
+
+                throw IllegalArgumentException("No subjects provided in '$name' flow")
+            }
         }
         subjects.get().keys.forEach {
             if (subjects.get()[it] == null) {

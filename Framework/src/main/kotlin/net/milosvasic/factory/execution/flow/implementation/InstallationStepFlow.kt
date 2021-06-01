@@ -13,7 +13,8 @@ import net.milosvasic.factory.execution.flow.processing.ProcessingRecipe
 import kotlin.reflect.KClass
 import kotlin.reflect.full.createInstance
 
-class InstallationStepFlow(private val toolkit: Toolkit) : FlowSimpleBuilder<InstallationStep<*>, String>() {
+class InstallationStepFlow(private val toolkit: Toolkit, name: String = "") :
+    FlowSimpleBuilder<InstallationStep<*>, String>(name) {
 
     private val recipes = mutableMapOf<KClass<*>, KClass<*>>()
 

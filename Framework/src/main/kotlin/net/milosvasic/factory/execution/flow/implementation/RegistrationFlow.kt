@@ -10,7 +10,7 @@ import net.milosvasic.factory.execution.flow.processing.FlowProcessingCallback
 import net.milosvasic.factory.execution.flow.processing.ProcessingRecipe
 import net.milosvasic.factory.log
 
-class RegistrationFlow<T> : FlowPerformBuilder<Registration<T>, T, String>() {
+class RegistrationFlow<T>(name: String) : FlowPerformBuilder<Registration<T>, T, String>(name) {
 
     @Throws(BusyException::class)
     override fun width(subject: Registration<T>): RegistrationFlow<T> {

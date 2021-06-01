@@ -48,7 +48,7 @@ class DeployStepTest : BaseTest() {
         val terminal = StubConnection()
         val remoteToolkit = Toolkit(ssh)
         val localToolkit = Toolkit(terminal)
-        val init = InstallationStepFlow(localToolkit)
+        val init = InstallationStepFlow(localToolkit, )
 
         val commandCallback = object : OperationResultListener {
             override fun onOperationPerformed(result: OperationResult) {
@@ -88,7 +88,7 @@ class DeployStepTest : BaseTest() {
             }
         }
 
-        val register = RegistrationFlow<OperationResultListener>()
+        val register = RegistrationFlow<OperationResultListener>("Deploy Step Registration")
                 .width(registration)
                 .perform(commandCallback)
 
@@ -104,7 +104,7 @@ class DeployStepTest : BaseTest() {
             init.width(commandStep(Commands.rm(path)))
         }
 
-        val flow = InstallationStepFlow(remoteToolkit)
+        val flow = InstallationStepFlow(remoteToolkit, "Deploy")
         registerRecipes(flow)
                 .width(deployStep())
                 .onFinish(flowCallback)

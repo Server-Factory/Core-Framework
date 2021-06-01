@@ -68,11 +68,11 @@ class DatabaseStep(val path: String) : RemoteOperationInstallationStep<SSH>() {
                 }
             }
 
-            val registrationFlow = RegistrationFlow<DatabaseRegistration>()
+            val registrationFlow = RegistrationFlow<DatabaseRegistration>("Database Registration")
                     .width(manager)
                     .perform(databaseRegistrationProvider)
 
-            val databaseFlow = ObtainableFlow().width(
+            val databaseFlow = ObtainableFlow("Database").width(
                     object : Obtain<InstallationStepFlow> {
 
                         @Throws(InvalidPathException::class)
@@ -82,7 +82,7 @@ class DatabaseStep(val path: String) : RemoteOperationInstallationStep<SSH>() {
                             val installation = db.getInstallation()
                             config?.let { conf ->
                                 if (conf.sqls.isNotEmpty()) {
-                                    val sqlFlow = CommandFlow().width(conn)
+                                    val sqlFlow = CommandFlow("Sql").width(conn)
                                     conf.sqls.forEach { sql ->
 
                                         val sqlPath = FilePathBuilder()
@@ -102,7 +102,7 @@ class DatabaseStep(val path: String) : RemoteOperationInstallationStep<SSH>() {
                     }
             )
 
-            return CommandFlow()
+            return CommandFlow("Database")
                     .width(conn)
                     .perform(TestCommand(configurationFile))
                     .perform(CatCommand(configurationFile), configurationDataHandler)

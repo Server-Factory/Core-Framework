@@ -83,7 +83,7 @@ class PackageInstaller(entryPoint: Connection) :
 
         entryPoint.subscribe(operationCallback)
         val toolkit = Toolkit(entryPoint)
-        val flow = InstallationStepFlow(toolkit)
+        val flow = InstallationStepFlow(toolkit, "Package Installation")
                 .onFinish(flowCallback)
                 .registerRecipe(SkipCondition::class, ConditionRecipe::class)
 

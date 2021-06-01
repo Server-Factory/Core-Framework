@@ -88,7 +88,7 @@ class TlsCertificate(name: String) : Certificate(name) {
             )
 
             val toolkit = Toolkit(conn)
-            val installationFlow = InstallationStepFlow(toolkit)
+            val installationFlow = InstallationStepFlow(toolkit, "Tls Certificate Installation")
                     .registerRecipe(SkipCondition::class, ConditionRecipe::class)
                     .registerRecipe(CommandInstallationStep::class, CommandInstallationStepRecipe::class)
                     .width(CommandInstallationStep(caVerificationCommand))
@@ -96,13 +96,13 @@ class TlsCertificate(name: String) : Certificate(name) {
                     .width(SkipCondition(keyVerificationCommand))
                     .width(CommandInstallationStep(installation))
 
-            val completionFlow = CommandFlow()
+            val completionFlow = CommandFlow("Tls Certificate Completion")
                     .width(conn)
                     .perform(caVerificationCommand)
                     .perform(keyVerificationCommand)
                     .perform(crtVerificationCommand)
 
-            return CommandFlow()
+            return CommandFlow("Tls Certificate")
                     .width(conn)
                     .perform(TestCommand(certificatesPath))
                     .connect(installationFlow)

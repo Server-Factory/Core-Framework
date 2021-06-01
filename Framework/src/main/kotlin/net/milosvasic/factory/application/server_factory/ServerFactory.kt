@@ -146,7 +146,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
                 val handler = DefaultInitializationHandler()
                 try {
 
-                    InitializationFlow()
+                    InitializationFlow("Server Factory Initialization")
                         .width(ConfigurationManager)
                         .handler(handler)
                         .onFinish(configurationManagerInitCallback)
@@ -357,7 +357,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
     protected open fun getCoreUtilsInstallerInitializationFlow(): FlowBuilder<*, *, *> {
 
-        return InitializationFlow().width(installer)
+        return InitializationFlow("Core Utils Initialization").width(installer)
     }
 
     private fun notifyInit() {
@@ -401,7 +401,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
         if (items.isEmpty()) {
             return null
         }
-        val installFlow = InstallationFlow(installer)
+        val installFlow = InstallationFlow(installer, "Installation")
         val dieCallback = DieOnFailureCallback()
         items.forEach {
 
@@ -414,7 +414,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
     private fun getDockerFlow(docker: Docker, terminationFlow: FlowBuilder<*, *, *>): InstallationFlow {
 
-        val dockerFlow = InstallationFlow(docker)
+        val dockerFlow = InstallationFlow(docker, "Docker")
         val items = getConfigurationItems(SoftwareConfigurationType.DOCKER)
         items.forEach { softwareConfiguration ->
             softwareConfiguration.software?.forEach { software ->
@@ -441,7 +441,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
     protected open fun getTerminationFlow(connection: Connection): FlowBuilder<*, *, *> {
 
-        return CommandFlow()
+        return CommandFlow("Server Factory Termination")
             .width(connection.getTerminal())
             .perform(EchoCommand("Finishing"))
             .onFinish(TerminationCallback(this))
@@ -478,7 +478,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
     private fun getDockerInitFlow(docker: Docker, dockerFlow: InstallationFlow): InitializationFlow {
 
         val initCallback = DockerInitializationFlowCallback()
-        return InitializationFlow()
+        return InitializationFlow("Docker Initialization")
             .width(docker)
             .connect(dockerFlow)
             .onFinish(initCallback)
@@ -496,7 +496,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
             throw IllegalArgumentException("Initializers are not provided")
         }
 
-        val flow = InitializationFlow()
+        val flow = InitializationFlow("Initialization")
         initializers.forEach {
             flow.width(it)
         }
@@ -561,7 +561,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
         val installationFlow = getCoreUtilsInstallationFlow()
         val installerInitFlow = getCoreUtilsInstallerInitializationFlow()
 
-        val flow = CommandFlow()
+        val flow = CommandFlow("Server Factory Command")
             .width(terminal)
             .perform(pingCommand)
             .width(ssh)
@@ -597,7 +597,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
             val disableCommand = DisableIptablesForMdns()
 
-            val disableFlow = CommandFlow()
+            val disableFlow = CommandFlow("Disable Ip Tables")
                 .width(ssh)
                 .perform(disableCommand)
 
@@ -611,7 +611,7 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
     private fun getCoreUtilsInstallationFlow(): FlowBuilder<*, *, *> {
 
-        val installationFlow = InstallationFlow(installer)
+        val installationFlow = InstallationFlow(installer, "Core Utils Installation")
         val coreUtilsDeploymentDependencies = getCoreUtilsInstallationDependencies()
 
         installationFlow.width(coreUtilsDeploymentDependencies)

@@ -102,7 +102,7 @@ open class DatabaseManager(entryPoint: Connection) :
     @Throws(IllegalStateException::class)
     open fun loadDatabasesFlow(): CommandFlow {
 
-        val flow = CommandFlow().width(entryPoint)
+        val flow = CommandFlow("Load Database").width(entryPoint)
         Type.values().forEach { databaseType ->
             when (databaseType) {
                 Type.Postgres -> {
@@ -297,7 +297,7 @@ open class DatabaseManager(entryPoint: Connection) :
 
         registration = what
         val db = what.database
-        InitializationFlow()
+        InitializationFlow("Database Registration")
                 .width(db)
                 .onFinish(initFlowCallback)
                 .run()

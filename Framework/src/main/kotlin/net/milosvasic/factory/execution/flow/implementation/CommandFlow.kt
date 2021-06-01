@@ -15,7 +15,7 @@ import net.milosvasic.factory.operation.OperationResultListener
 import net.milosvasic.factory.operation.command.CommandConfiguration
 import net.milosvasic.factory.terminal.TerminalCommand
 
-class CommandFlow : FlowPerformBuilder<Executor<TerminalCommand>, TerminalCommand, String>() {
+class CommandFlow(name: String = "") : FlowPerformBuilder<Executor<TerminalCommand>, TerminalCommand, String>(name) {
 
     private val dataHandlers = mutableMapOf<TerminalCommand, DataHandler<OperationResult>>()
 

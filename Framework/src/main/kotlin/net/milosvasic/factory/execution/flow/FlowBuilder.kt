@@ -10,7 +10,7 @@ import net.milosvasic.factory.execution.flow.callback.FlowCallback
 import net.milosvasic.factory.execution.flow.processing.FlowProcessingCallback
 import net.milosvasic.factory.log
 
-abstract class FlowBuilder<T, D, C> : Flow<T, D>, BusyDelegation {
+abstract class FlowBuilder<T, D, C>(protected val name: String) : Flow<T, D>, BusyDelegation {
 
     abstract val subjects: CollectionWrapper<C>
     abstract val processingCallback: FlowProcessingCallback

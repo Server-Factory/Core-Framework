@@ -13,7 +13,7 @@ import net.milosvasic.factory.log
 import net.milosvasic.factory.operation.OperationResult
 import net.milosvasic.factory.operation.OperationResultListener
 
-class InitializationFlow : FlowSimpleBuilder<Initializer, String>() {
+class InitializationFlow(name: String = "") : FlowSimpleBuilder<Initializer, String>(name) {
 
     private val initializationHandlers = mutableMapOf<Initializer, InitializationHandler>()
 

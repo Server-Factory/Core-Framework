@@ -13,7 +13,8 @@ import net.milosvasic.factory.log
 import net.milosvasic.factory.operation.OperationResult
 import net.milosvasic.factory.operation.OperationResultListener
 
-class InstallationFlow(private val installer: InstallerAbstract) : FlowSimpleBuilder<SoftwareConfiguration, String>() {
+class InstallationFlow(private val installer: InstallerAbstract, name: String)
+    : FlowSimpleBuilder<SoftwareConfiguration, String>(name) {
 
     @Throws(BusyException::class)
     override fun width(subject: SoftwareConfiguration): InstallationFlow {

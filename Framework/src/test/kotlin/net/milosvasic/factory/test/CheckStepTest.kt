@@ -22,7 +22,7 @@ class CheckStepTest : BaseTest() {
     private val connection = StubConnection()
     private val toolkit = Toolkit(connection)
     private val factory = InstallationStepFactories
-    private val flow = InstallationStepFlow(toolkit)
+    private val flow = InstallationStepFlow(toolkit, "Check Step")
 
     @Test
     fun testCheckStep() {

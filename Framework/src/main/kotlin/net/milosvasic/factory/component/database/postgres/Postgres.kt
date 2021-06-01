@@ -26,7 +26,7 @@ class Postgres(name: String, connection: DatabaseConnection) : Database(name, co
     override fun getInstallation(): InstallationStepFlow {
 
         val toolkit = Toolkit(connection.entryPoint)
-        val flow = InstallationStepFlow(toolkit)
+        val flow = InstallationStepFlow(toolkit, "Postgress Installation")
         val recipeRegistrar = MainRecipeRegistrar()
 
         val steps = listOf<InstallationStep<*>>(

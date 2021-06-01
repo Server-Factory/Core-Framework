@@ -9,7 +9,7 @@ import net.milosvasic.factory.execution.flow.processing.FlowProcessingCallback
 import net.milosvasic.factory.execution.flow.processing.ProcessingRecipe
 import net.milosvasic.factory.log
 
-class ObtainableFlow : FlowSimpleBuilder<Obtain<FlowBuilder<*, *, *>>, String>() {
+class ObtainableFlow(name: String = "") : FlowSimpleBuilder<Obtain<FlowBuilder<*, *, *>>, String>(name) {
 
     @Throws(BusyException::class, IllegalArgumentException::class)
     override fun width(subject: Obtain<FlowBuilder<*, *, *>>): ObtainableFlow {

@@ -50,7 +50,7 @@ abstract class InstallerAbstract(entryPoint: Connection) :
                     val env = getEnvironmentName()
                     steps = softwareConfiguration.obtain(env)
                     busy()
-                    val flow = InstallationStepFlow(getToolkit())
+                    val flow = InstallationStepFlow(getToolkit(), "Install")
                     steps.keys.forEach { key ->
                         val values = steps[key]
                         values?.forEach { step ->

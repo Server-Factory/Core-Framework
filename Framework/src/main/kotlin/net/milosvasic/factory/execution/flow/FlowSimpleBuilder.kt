@@ -6,7 +6,7 @@ import net.milosvasic.factory.execution.flow.processing.FlowProcessingCallback
 import net.milosvasic.factory.execution.flow.processing.FlowProcessingData
 import net.milosvasic.factory.execution.flow.processing.ProcessingRecipe
 
-abstract class FlowSimpleBuilder<T, D> : FlowBuilder<T, D, MutableList<Wrapper<T>>>() {
+abstract class FlowSimpleBuilder<T, D>(name: String) : FlowBuilder<T, D, MutableList<Wrapper<T>>>(name) {
 
     private val collectionWrapper = CollectionWrapper<MutableList<Wrapper<T>>>(mutableListOf())
 
@@ -32,7 +32,13 @@ abstract class FlowSimpleBuilder<T, D> : FlowBuilder<T, D, MutableList<Wrapper<T
 
         if (subjects.get().isEmpty()) {
 
-            throw IllegalArgumentException("No subjects provided")
+            if (name.isEmpty() || name.isBlank()) {
+
+                throw IllegalArgumentException("No subjects provided")
+            } else {
+
+                throw IllegalArgumentException("No subjects provided in '$name' flow")
+            }
         }
         if (subjectsIterator == null) {
             subjectsIterator = subjects.get().iterator()

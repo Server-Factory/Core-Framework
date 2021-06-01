@@ -73,7 +73,7 @@ open class Certificate(val name: String) : RemoteOperationInstallationStep<SSH>(
             val pem = GeneratePEMCommand()
 
             val toolkit = Toolkit(conn)
-            val checkFlow = InstallationStepFlow(toolkit)
+            val checkFlow = InstallationStepFlow(toolkit, "Certificate Installation")
                     .registerRecipe(SkipCondition::class, ConditionRecipe::class)
                     .registerRecipe(CommandInstallationStep::class, CommandInstallationStepRecipe::class)
                     .width(SkipCondition(verificationCommand))
@@ -85,12 +85,12 @@ open class Certificate(val name: String) : RemoteOperationInstallationStep<SSH>(
                     .width(CommandInstallationStep(pem))
                     .width(CommandInstallationStep(chmod))
 
-            val completionFlow = CommandFlow()
+            val completionFlow = CommandFlow("Certificate Completion")
                     .width(conn)
                     .perform(verificationCommand)
                     .perform(TestCommand(linkingPath))
 
-            return CommandFlow()
+            return CommandFlow("Certificate")
                     .width(conn)
                     .perform(MkdirCommand(path))
                     .connect(checkFlow)
