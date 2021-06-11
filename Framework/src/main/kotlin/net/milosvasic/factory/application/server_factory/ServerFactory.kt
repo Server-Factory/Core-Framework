@@ -416,6 +416,15 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
         val dockerFlow = InstallationFlow(docker, "Docker")
         val items = getConfigurationItems(SoftwareConfigurationType.DOCKER)
+
+        if (items.isEmpty()) {
+
+            log.w("Preparing Docker flow, configuration items empty")
+        } else {
+
+            log.v("Preparing Docker flow, configuration items count: ${items.size}")
+        }
+
         items.forEach { softwareConfiguration ->
             softwareConfiguration.software?.forEach { software ->
 
