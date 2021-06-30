@@ -52,6 +52,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Application, BusyDelegation {
 
+    protected open val supportTargets = false
     protected lateinit var installer: Installer
     protected var configuration: Configuration? = null
     protected val executor = TaskExecutor.instantiate(5)
@@ -96,7 +97,13 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
                                         log.v(name)
                                     }
                                 }
+
+                                if (supportTargets) {
+
+                                    initTargets()
+                                }
                                 notifyInit()
+
                             } catch (e: IllegalStateException) {
 
                                 notifyInit(e)
@@ -312,6 +319,8 @@ abstract class ServerFactory(private val builder: ServerFactoryBuilder) : Applic
 
     @Throws(IllegalArgumentException::class)
     protected fun getConnection() = ConfigurationManager.getConnection()
+
+    protected open fun initTargets() {}
 
     protected open fun getLogTag() = tag
 

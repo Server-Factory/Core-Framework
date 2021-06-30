@@ -11,15 +11,12 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class CommonServerFactory(builder: ServerFactoryBuilder) : ServerFactory(builder) {
 
+    override val supportTargets: Boolean
+        get() = true
+
     override fun getConfigurationFactory() = CommonServerConfigurationFactory()
 
-    override fun initialize() {
-
-        super.initialize()
-        initTargets()
-    }
-
-    private fun initTargets() {
+    override fun initTargets() {
 
         configuration?.let {
             it.deployment?.let { targets ->
