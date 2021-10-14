@@ -214,7 +214,7 @@ open class Deploy(
                 if (file.isDirectory) {
 
                     processFiles(file)
-                } else if (file.name.toLowerCase().startsWith(PROTOTYPE_PREFIX)) {
+                } else if (file.name.lowercase().startsWith(PROTOTYPE_PREFIX)) {
 
                     processFile(directory, file)
                 }
@@ -232,7 +232,7 @@ open class Deploy(
                 if (file.isDirectory) {
 
                     cleanupFiles(file)
-                } else if (file.name.toLowerCase().startsWith(PROTOTYPE_PREFIX)) {
+                } else if (file.name.lowercase().startsWith(PROTOTYPE_PREFIX)) {
 
                     val toRemove = File(directory, getName(file))
                     cleanupFile(toRemove)
@@ -287,7 +287,7 @@ open class Deploy(
         }
     }
 
-    private fun getName(file: File) = file.name.toLowerCase().replace(PROTOTYPE_PREFIX, "")
+    private fun getName(file: File) = file.name.lowercase().replace(PROTOTYPE_PREFIX, "")
 
     private fun tmpDirectory(): File {
 

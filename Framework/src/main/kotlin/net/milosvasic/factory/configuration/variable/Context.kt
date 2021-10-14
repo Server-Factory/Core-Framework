@@ -10,43 +10,53 @@ interface Context {
     companion object {
 
         val System = object : Context {
+
             override fun context() = "SYSTEM"
         }
 
         val Proxy = object : Context {
-            override fun context() = Directories.PROXY.toUpperCase()
+
+            override fun context() = Directories.PROXY.lowercase()
         }
 
         val Installation = object : Context {
+
             override fun context() = "INSTALLATION"
         }
 
         val Server = object : Context {
-            override fun context() = Directories.SERVER.toUpperCase()
+
+            override fun context() = Directories.SERVER.lowercase()
         }
 
         val Behavior = object : Context {
+
             override fun context() = "BEHAVIOR"
         }
 
         val Ports = object : Context {
+
             override fun context() = "PORTS"
         }
 
         val Service = object : Context {
+
             override fun context() = "SERVICE"
         }
 
         val Database = object : Context {
+
             override fun context() = "DATABASE"
         }
 
         val Certification = object : Context {
+
             override fun context() = "CERTIFICATION"
         }
 
         val Docker = object : Context {
-            override fun context() = DockerCommand.DOCKER.obtain().toUpperCase()
+
+            override fun context() = DockerCommand.DOCKER.obtain().lowercase()
         }
     }
 }

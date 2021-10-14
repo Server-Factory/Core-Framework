@@ -42,7 +42,7 @@ data class OperatingSystem(
         @Throws(IllegalArgumentException::class, NullPointerException::class, SecurityException::class)
         private fun getOS(): String {
 
-            return System.getProperty("os.name").toLowerCase()
+            return System.getProperty("os.name").lowercase()
         }
     }
 
@@ -67,28 +67,28 @@ data class OperatingSystem(
         lines.forEach {
             if (it.contains(osLineString)) {
                 name = it.replace(osLineString, "").trim()
-                if (name.toLowerCase().contains(Platform.CENTOS.platformName.toLowerCase())) {
+                if (name.lowercase().contains(Platform.CENTOS.platformName.lowercase())) {
 
-                    platform = if (name.toLowerCase().contains("linux 8")) {
+                    platform = if (name.lowercase().contains("linux 8")) {
                         Platform.CENTOS
                     } else {
                         Platform.CENTOS_7
                     }
                 }
-                if (name.toLowerCase().contains(Platform.FEDORA.platformName.toLowerCase())) {
+                if (name.lowercase().contains(Platform.FEDORA.platformName.lowercase())) {
 
-                    platform = if (name.toLowerCase().contains("server")) {
+                    platform = if (name.lowercase().contains("server")) {
                         when {
-                            name.toLowerCase().contains("30") -> {
+                            name.lowercase().contains("30") -> {
                                 Platform.FEDORA_SERVER_30
                             }
-                            name.toLowerCase().contains("31") -> {
+                            name.lowercase().contains("31") -> {
                                 Platform.FEDORA_SERVER_31
                             }
-                            name.toLowerCase().contains("32") -> {
+                            name.lowercase().contains("32") -> {
                                 Platform.FEDORA_SERVER_32
                             }
-                            name.toLowerCase().contains("33") -> {
+                            name.lowercase().contains("33") -> {
                                 Platform.FEDORA_SERVER_33
                             }
                             else -> {
@@ -98,16 +98,16 @@ data class OperatingSystem(
                     } else {
 
                         when {
-                            name.toLowerCase().contains("30") -> {
+                            name.lowercase().contains("30") -> {
                                 Platform.FEDORA_30
                             }
-                            name.toLowerCase().contains("31") -> {
+                            name.lowercase().contains("31") -> {
                                 Platform.FEDORA_31
                             }
-                            name.toLowerCase().contains("32") -> {
+                            name.lowercase().contains("32") -> {
                                 Platform.FEDORA_32
                             }
-                            name.toLowerCase().contains("33") -> {
+                            name.lowercase().contains("33") -> {
                                 Platform.FEDORA_33
                             }
                             else -> {
@@ -116,13 +116,13 @@ data class OperatingSystem(
                         }
                     }
                 }
-                if (name.toLowerCase().contains(Platform.REDHAT.platformName.toLowerCase())) {
+                if (name.lowercase().contains(Platform.REDHAT.platformName.lowercase())) {
                     platform = Platform.REDHAT
                 }
-                if (name.toLowerCase().contains(Platform.UBUNTU.platformName.toLowerCase())) {
+                if (name.lowercase().contains(Platform.UBUNTU.platformName.lowercase())) {
                     platform = Platform.UBUNTU
                 }
-                if (name.toLowerCase().contains(Platform.DEBIAN.platformName.toLowerCase())) {
+                if (name.lowercase().contains(Platform.DEBIAN.platformName.lowercase())) {
                     platform = Platform.DEBIAN
                 }
             }
@@ -131,7 +131,7 @@ data class OperatingSystem(
                     .replace("-", "")
                     .replace("_", "")
                     .trim()
-                    .toLowerCase()
+                    .lowercase()
 
                 when {
                     arch.startsWith("x8664") -> {

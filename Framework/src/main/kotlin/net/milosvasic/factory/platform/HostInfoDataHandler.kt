@@ -17,7 +17,7 @@ open class HostInfoDataHandler(private val os: OperatingSystem) : DataHandler<Op
             if (os.getArchitecture() == Architecture.UNKNOWN) {
                 log.w("Host system architecture is unknown")
             } else {
-                val arch = os.getArchitecture().arch.toUpperCase()
+                val arch = os.getArchitecture().arch.uppercase()
                 log.i("Host system architecture: $arch")
             }
         }
