@@ -4,3 +4,6 @@
 [submodule "Utils"]
 	path = Utils
 	url = git@github.com:Server-Factory/Utils.git
+[submodule "Upstreamable"]
+	path = Upstreamable
+	url = git@github.com:red-elf/Upstreamable.git
