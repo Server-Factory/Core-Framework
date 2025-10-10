@@ -5,4 +5,4 @@ import java.nio.file.InvalidPathException
 
 class IpAddressObtainCommand
 @Throws(InvalidPathException::class) constructor(host: String) :
-    @Throws(InvalidPathException::class) TerminalCommand(Commands.getIpAddress(host))
+    TerminalCommand(Commands.getIpAddress(host))

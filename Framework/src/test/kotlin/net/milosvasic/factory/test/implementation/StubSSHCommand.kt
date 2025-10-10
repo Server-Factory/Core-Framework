@@ -8,7 +8,6 @@ import net.milosvasic.factory.terminal.TerminalCommand
 class StubSSHCommand
 @Throws(IllegalStateException::class)
 constructor(remote: Remote, command: TerminalCommand) :
-    @Throws(IllegalStateException::class)
     SSHCommand(
         remote,
         command,

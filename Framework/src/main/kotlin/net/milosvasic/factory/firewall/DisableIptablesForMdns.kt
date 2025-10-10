@@ -7,5 +7,4 @@ import java.nio.file.InvalidPathException
 class DisableIptablesForMdns
 @Throws(InvalidPathException::class, IllegalStateException::class)
 constructor() :
-    @Throws(InvalidPathException::class, IllegalStateException::class)
     TerminalCommand(Commands.disableIptablesForMdns())
