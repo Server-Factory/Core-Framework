@@ -1,0 +1,29 @@
+package net.milosvasic.factory.component.installer.step.reboot
+
+/**
+ * ADVANCED REBOOT STEP - Work in Progress
+ *
+ * This file contains an advanced reboot implementation with:
+ * - Platform detection (systemd, sysvinit, OpenRC)
+ * - Virtualization detection (QEMU/KVM vs physical hardware)
+ * - Pre-reboot health checks
+ * - Boot ID verification
+ * - Connection dropout detection
+ * - Reconnection with exponential backoff
+ * - Post-reboot health verification (systemd, network, disk, etc.)
+ * - BIOS/POST delay handling
+ *
+ * STATUS: Disabled (.wip extension)
+ *
+ * REASON: Requires new Connection API integration with ServerFactory
+ * The advanced implementation needs the remoteServiceConnection property
+ * which is now available in ServerFactory. However, it requires refactoring
+ * to work with the RemoteOperationInstallationStep architecture.
+ *
+ * CURRENT IMPLEMENTATION: RebootStep.kt provides basic reboot functionality
+ *
+ * FUTURE WORK: Integrate advanced features when architecture supports it
+ */
+
+// Advanced implementation code removed for clarity
+// See git history for full implementation details
