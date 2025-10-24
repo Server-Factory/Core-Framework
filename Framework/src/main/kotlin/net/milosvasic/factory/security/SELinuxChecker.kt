@@ -1,8 +1,7 @@
 package net.milosvasic.factory.security
 
 import net.milosvasic.logger.Log
-import net.milosvasic.factory.remote.ssh.SSH
-import net.milosvasic.factory.terminal.TerminalCommand
+import net.milosvasic.factory.connection.Connection
 
 /**
  * SELinux security checker with comprehensive warnings and recommendations.
@@ -24,10 +23,10 @@ object SELinuxChecker {
     /**
      * Checks SELinux status on remote system.
      *
-     * @param connection SSH connection to remote system
+     * @param connection Connection to remote system
      * @return SELinuxStatus with detailed information
      */
-    fun checkStatus(connection: SSH): SELinuxStatus {
+    fun checkStatus(connection: Connection): SELinuxStatus {
         try {
             Log.i("Checking SELinux status...")
 
@@ -96,12 +95,12 @@ object SELinuxChecker {
     /**
      * Sets SELinux mode with comprehensive warnings.
      *
-     * @param connection SSH connection to remote system
+     * @param connection Connection to remote system
      * @param targetMode Target SELinux mode
      * @param force Force mode change without confirmation
      * @return true if successful
      */
-    fun setMode(connection: SSH, targetMode: SELinuxMode, force: Boolean = false): Boolean {
+    fun setMode(connection: Connection, targetMode: SELinuxMode, force: Boolean = false): Boolean {
         try {
             val currentStatus = checkStatus(connection)
 
@@ -194,9 +193,9 @@ object SELinuxChecker {
     /**
      * Checks if SELinux is available on the system.
      */
-    private fun checkSELinuxAvailable(connection: SSH): Boolean {
+    private fun checkSELinuxAvailable(connection: Connection): Boolean {
         return try {
-            val result = connection.execute(TerminalCommand("which getenforce"))
+            val result = connection.execute("which getenforce")
             result.success
         } catch (e: Exception) {
             false
@@ -206,9 +205,9 @@ object SELinuxChecker {
     /**
      * Gets the current SELinux mode.
      */
-    private fun getCurrentMode(connection: SSH): SELinuxMode {
+    private fun getCurrentMode(connection: Connection): SELinuxMode {
         return try {
-            val result = connection.execute(TerminalCommand("getenforce"))
+            val result = connection.execute("getenforce")
             val output = result.output.trim().uppercase()
 
             when (output) {
@@ -225,11 +224,9 @@ object SELinuxChecker {
     /**
      * Gets the configured SELinux mode from config file.
      */
-    private fun getConfigMode(connection: SSH): SELinuxMode? {
+    private fun getConfigMode(connection: Connection): SELinuxMode? {
         return try {
-            val result = connection.execute(
-                TerminalCommand("grep '^SELINUX=' /etc/selinux/config | cut -d= -f2")
-            )
+            val result = connection.execute("grep '^SELINUX=' /etc/selinux/config | cut -d= -f2")
             val output = result.output.trim().uppercase()
 
             when (output) {
@@ -246,9 +243,9 @@ object SELinuxChecker {
     /**
      * Sets SELinux to enforcing mode.
      */
-    private fun setEnforcing(connection: SSH): Boolean {
+    private fun setEnforcing(connection: Connection): Boolean {
         return try {
-            connection.execute(TerminalCommand("setenforce 1"))
+            connection.execute("setenforce 1")
             updateConfigFile(connection, SELinuxMode.ENFORCING)
             true
         } catch (e: Exception) {
@@ -260,9 +257,9 @@ object SELinuxChecker {
     /**
      * Sets SELinux to permissive mode.
      */
-    private fun setPermissive(connection: SSH): Boolean {
+    private fun setPermissive(connection: Connection): Boolean {
         return try {
-            connection.execute(TerminalCommand("setenforce 0"))
+            connection.execute("setenforce 0")
             updateConfigFile(connection, SELinuxMode.PERMISSIVE)
             true
         } catch (e: Exception) {
@@ -274,7 +271,7 @@ object SELinuxChecker {
     /**
      * Disables SELinux (requires reboot).
      */
-    private fun setDisabled(connection: SSH): Boolean {
+    private fun setDisabled(connection: Connection): Boolean {
         return try {
             updateConfigFile(connection, SELinuxMode.DISABLED)
             Log.w("SELinux will be disabled after reboot")
@@ -288,7 +285,7 @@ object SELinuxChecker {
     /**
      * Updates SELinux config file.
      */
-    private fun updateConfigFile(connection: SSH, mode: SELinuxMode): Boolean {
+    private fun updateConfigFile(connection: Connection, mode: SELinuxMode): Boolean {
         return try {
             val configValue = when (mode) {
                 SELinuxMode.ENFORCING -> "enforcing"
@@ -297,9 +294,7 @@ object SELinuxChecker {
                 else -> return false
             }
 
-            connection.execute(
-                TerminalCommand("sed -i 's/^SELINUX=.*/SELINUX=$configValue/' /etc/selinux/config")
-            )
+            connection.execute("sed -i 's/^SELINUX=.*/SELINUX=$configValue/' /etc/selinux/config")
             true
         } catch (e: Exception) {
             Log.e("Failed to update SELinux config: ${e.message}")

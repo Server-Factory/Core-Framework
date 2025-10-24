@@ -27,7 +27,7 @@ class ConnectionConfigTest {
             .build()
 
         val result = config.validate()
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test
@@ -68,7 +68,7 @@ class ConnectionConfigTest {
             .build()
 
         val result = config.validate()
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test
@@ -106,7 +106,7 @@ class ConnectionConfigTest {
             .build()
 
         val result = config.validate()
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test
@@ -154,7 +154,7 @@ class ConnectionConfigTest {
             .build()
 
         val result = config.validate()
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test
@@ -190,7 +190,7 @@ class ConnectionConfigTest {
             .build()
 
         val result = config.validate()
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test
@@ -239,7 +239,7 @@ class ConnectionConfigTest {
             .build()
 
         val result = config.validate()
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test
@@ -258,7 +258,7 @@ class ConnectionConfigTest {
             .build()
 
         val result = config.validate()
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test
@@ -277,7 +277,7 @@ class ConnectionConfigTest {
             .build()
 
         val result = config.validate()
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test
@@ -286,7 +286,7 @@ class ConnectionConfigTest {
         val credentials = Credentials("testuser", password = "testpass")
 
         val result = credentials.validate()
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test
@@ -295,7 +295,7 @@ class ConnectionConfigTest {
         val credentials = Credentials("testuser", keyPath = "/path/to/key")
 
         val result = credentials.validate()
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test

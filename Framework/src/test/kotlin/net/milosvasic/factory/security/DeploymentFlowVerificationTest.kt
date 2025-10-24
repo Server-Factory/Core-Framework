@@ -573,7 +573,7 @@ class DeploymentFlowVerificationTest {
         val encrypted = Encryption.encrypt(password, testMasterKey)
 
         // Attempt decryption with wrong key
-        assertThrows<DecryptionException> {
+        assertThrows(DecryptionException::class.java) {
             Encryption.decrypt(encrypted, wrongKey)
         }
 

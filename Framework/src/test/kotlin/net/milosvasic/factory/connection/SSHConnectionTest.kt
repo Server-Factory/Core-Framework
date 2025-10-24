@@ -109,7 +109,7 @@ class SSHConnectionTest {
 
         val result = connection.validateConfig()
 
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test

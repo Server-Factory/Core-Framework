@@ -4,8 +4,7 @@ import net.milosvasic.factory.component.installer.step.RemoteOperationInstallati
 import net.milosvasic.factory.execution.flow.callback.FlowCallback
 import net.milosvasic.factory.execution.flow.implementation.initialization.InitializationFlow
 import net.milosvasic.logger.Log
-import net.milosvasic.factory.remote.Connection
-import net.milosvasic.factory.remote.ssh.SSH
+import net.milosvasic.factory.connection.Connection
 import java.util.concurrent.TimeUnit
 
 /**
@@ -135,15 +134,14 @@ class RebootStep(
     private fun detectPlatform() {
         Log.i("Detecting platform type...")
 
-        val connection = flow?.serverFactory?.remoteServiceConnection as? SSH
-            ?: throw IllegalStateException("SSH connection not available")
+        val connection = flow?.serverFactory?.remoteServiceConnection as? Connection
+            ?: throw IllegalStateException("Connection not available")
 
         // Detect init system
         val initSystem = connection.execute("ps -p 1 -o comm=").output.trim()
         platformType = when {
             initSystem.contains(SYSTEMD_PATTERN) -> PlatformType.SYSTEMD
-            File("/etc/init.d").exists() -> PlatformType.SYSVINIT
-            else -> PlatformType.SYSTEMD // default assumption
+            else -> PlatformType.SYSTEMD // default assumption (can't check File.exists on remote)
         }
 
         // Detect virtualization
@@ -181,8 +179,8 @@ class RebootStep(
     private fun preRebootHealthCheck() {
         Log.i("Performing pre-reboot health check...")
 
-        val connection = flow?.serverFactory?.remoteServiceConnection as? SSH
-            ?: throw IllegalStateException("SSH connection not available")
+        val connection = flow?.serverFactory?.remoteServiceConnection as? Connection
+            ?: throw IllegalStateException("Connection not available")
 
         // Check disk space
         val diskSpace = connection.execute("df -h / | tail -1 | awk '{print $5}' | sed 's/%//'").output.trim()
@@ -218,7 +216,7 @@ class RebootStep(
      * Captures the current boot ID for reboot verification.
      */
     private fun captureBootId() {
-        val connection = flow?.serverFactory?.remoteServiceConnection as? SSH
+        val connection = flow?.serverFactory?.remoteServiceConnection as? Connection
             ?: return
 
         try {
@@ -237,8 +235,8 @@ class RebootStep(
     private fun initiateReboot() {
         Log.i("Initiating ${if (graceful) "graceful" else "forced"} reboot...")
 
-        val connection = flow?.serverFactory?.remoteServiceConnection as? SSH
-            ?: throw IllegalStateException("SSH connection not available")
+        val connection = flow?.serverFactory?.remoteServiceConnection as? Connection
+            ?: throw IllegalStateException("Connection not available")
 
         val rebootCommand = when {
             graceful -> getGracefulRebootCommand()
@@ -276,12 +274,12 @@ class RebootStep(
     }
 
     /**
-     * Waits for the SSH connection to drop (indicating reboot started).
+     * Waits for the connection to drop (indicating reboot started).
      */
     private fun waitForConnectionDropout() {
         Log.i("Waiting for connection dropout (reboot initiation)...")
 
-        val connection = flow?.serverFactory?.remoteServiceConnection as? SSH
+        val connection = flow?.serverFactory?.remoteServiceConnection as? Connection
             ?: return
 
         val maxWait = 30 // 30 seconds
@@ -308,8 +306,8 @@ class RebootStep(
     private fun waitForSystemOnline() {
         Log.i("Waiting for system to come back online (timeout: ${timeout}s)...")
 
-        val connection = flow?.serverFactory?.remoteServiceConnection as? SSH
-            ?: throw IllegalStateException("SSH connection not available")
+        val connection = flow?.serverFactory?.remoteServiceConnection as? Connection
+            ?: throw IllegalStateException("Connection not available")
 
         val startTime = System.currentTimeMillis()
         val timeoutMillis = timeout * 1000L
@@ -371,7 +369,7 @@ class RebootStep(
 
         Log.i("Verifying reboot occurred...")
 
-        val connection = flow?.serverFactory?.remoteServiceConnection as? SSH
+        val connection = flow?.serverFactory?.remoteServiceConnection as? Connection
             ?: return
 
         try {
@@ -397,8 +395,8 @@ class RebootStep(
     private fun postRebootHealthCheck() {
         Log.i("Performing post-reboot health checks...")
 
-        val connection = flow?.serverFactory?.remoteServiceConnection as? SSH
-            ?: throw IllegalStateException("SSH connection not available")
+        val connection = flow?.serverFactory?.remoteServiceConnection as? Connection
+            ?: throw IllegalStateException("Connection not available")
 
         for (check in healthChecks) {
             performHealthCheck(check, connection)
@@ -410,7 +408,7 @@ class RebootStep(
     /**
      * Performs a specific health check.
      */
-    private fun performHealthCheck(check: HealthCheck, connection: SSH) {
+    private fun performHealthCheck(check: HealthCheck, connection: Connection) {
         Log.v("Health check: ${check.name}")
 
         try {

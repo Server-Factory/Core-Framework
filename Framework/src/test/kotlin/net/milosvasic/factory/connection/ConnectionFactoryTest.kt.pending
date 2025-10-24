@@ -316,7 +316,7 @@ class ConnectionFactoryTest {
             .build()
 
         val result = ConnectionFactory.validateConfiguration(config)
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test

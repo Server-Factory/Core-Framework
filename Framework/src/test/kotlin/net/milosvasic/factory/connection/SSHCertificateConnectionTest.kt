@@ -125,7 +125,7 @@ class SSHCertificateConnectionTest {
         val connection = SSHCertificateConnectionImpl(config)
         val result = connection.validateConfig()
 
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test

@@ -231,7 +231,8 @@ class LocalConnectionTest {
         connection.connect()
 
         val env = mapOf("TEST_VAR" to "test_value")
-        val result = connection.executeWithEnvironment("echo $TEST_VAR", env)
+        // Use echo to print environment variable
+        val result = connection.executeWithEnvironment("echo \$TEST_VAR", env)
 
         assertTrue(result.success)
         assertTrue(result.output.contains("test_value"))
@@ -335,7 +336,7 @@ class LocalConnectionTest {
     fun testConfigValidation() {
         val result = connection.validateConfig()
 
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test

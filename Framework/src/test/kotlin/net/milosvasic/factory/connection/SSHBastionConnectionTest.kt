@@ -149,7 +149,7 @@ class SSHBastionConnectionTest {
         val connection = SSHBastionConnectionImpl(targetConfig)
         val result = connection.validateConfig()
 
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test

@@ -1,8 +1,7 @@
 package net.milosvasic.factory.security
 
 import net.milosvasic.logger.Log
-import net.milosvasic.factory.remote.ssh.SSH
-import net.milosvasic.factory.terminal.TerminalCommand
+import net.milosvasic.factory.connection.Connection
 import net.milosvasic.factory.validation.InputValidator
 import net.milosvasic.factory.validation.ValidationResult
 import java.io.File
@@ -39,7 +38,7 @@ object DockerCredentialsManager {
     /**
      * Docker login with encrypted credentials.
      *
-     * @param connection SSH connection to remote host
+     * @param connection Connection to remote host
      * @param username Docker Hub username
      * @param password Docker Hub password (encrypted or plain)
      * @param registry Docker registry URL (default: Docker Hub)
@@ -47,7 +46,7 @@ object DockerCredentialsManager {
      * @return true if login successful
      */
     fun login(
-        connection: SSH,
+        connection: Connection,
         username: String,
         password: String,
         registry: String = DEFAULT_REGISTRY,
@@ -91,7 +90,7 @@ object DockerCredentialsManager {
             // Perform login using stdin to avoid password in process list
             val loginCommand = "echo '${escapeForShell(decryptedPassword)}' | docker login -u '${escapeForShell(username)}' --password-stdin '$registry'"
 
-            val result = connection.execute(TerminalCommand(loginCommand))
+            val result = connection.execute(loginCommand)
 
             if (result.success) {
                 Log.i("Docker login successful for user: $username")
@@ -134,17 +133,15 @@ object DockerCredentialsManager {
     /**
      * Docker logout from registry.
      *
-     * @param connection SSH connection to remote host
+     * @param connection Connection to remote host
      * @param registry Docker registry URL
      * @return true if logout successful
      */
-    fun logout(connection: SSH, registry: String = DEFAULT_REGISTRY): Boolean {
+    fun logout(connection: Connection, registry: String = DEFAULT_REGISTRY): Boolean {
         try {
             Log.i("Performing Docker logout...")
 
-            val result = connection.execute(
-                TerminalCommand("docker logout '$registry'")
-            )
+            val result = connection.execute("docker logout '$registry'")
 
             if (result.success) {
                 Log.i("Docker logout successful")
@@ -171,11 +168,11 @@ object DockerCredentialsManager {
     /**
      * Configures Docker to use credential helper.
      *
-     * @param connection SSH connection to remote host
+     * @param connection Connection to remote host
      * @param helper Credential helper name (e.g., "pass", "secretservice", "osxkeychain")
      * @return true if configured successfully
      */
-    fun configureCredentialHelper(connection: SSH, helper: String): Boolean {
+    fun configureCredentialHelper(connection: Connection, helper: String): Boolean {
         try {
             Log.i("Configuring Docker credential helper: $helper")
 
@@ -187,7 +184,7 @@ object DockerCredentialsManager {
 
             // Check if helper is available
             val helperPath = "docker-credential-$helper"
-            val checkResult = connection.execute(TerminalCommand("which $helperPath"))
+            val checkResult = connection.execute("which $helperPath")
 
             if (!checkResult.success) {
                 Log.e("Credential helper not found: $helperPath")
@@ -206,15 +203,15 @@ object DockerCredentialsManager {
             val configFile = "$configDir/$DOCKER_CONFIG_FILE"
 
             // Create config directory
-            connection.execute(TerminalCommand("mkdir -p '$configDir'"))
-            connection.execute(TerminalCommand("chmod 700 '$configDir'"))
+            connection.execute("mkdir -p '$configDir'")
+            connection.execute("chmod 700 '$configDir'")
 
             // Write config
             val writeCommand = "cat > '$configFile' << 'EOF'\n$configJson\nEOF"
-            connection.execute(TerminalCommand(writeCommand))
+            connection.execute(writeCommand)
 
             // Secure permissions
-            connection.execute(TerminalCommand("chmod 600 '$configFile'"))
+            connection.execute("chmod 600 '$configFile'")
 
             Log.i("Docker credential helper configured: $helper")
 
@@ -235,18 +232,18 @@ object DockerCredentialsManager {
     /**
      * Secures Docker configuration file permissions.
      *
-     * @param connection SSH connection to remote host
+     * @param connection Connection to remote host
      */
-    fun secureDockerConfig(connection: SSH) {
+    fun secureDockerConfig(connection: Connection) {
         try {
             val configDir = "\$HOME/$DOCKER_CONFIG_DIR"
             val configFile = "$configDir/$DOCKER_CONFIG_FILE"
 
             // Set restrictive permissions on config directory
-            connection.execute(TerminalCommand("chmod 700 '$configDir' 2>/dev/null || true"))
+            connection.execute("chmod 700 '$configDir' 2>/dev/null || true")
 
             // Set restrictive permissions on config file
-            connection.execute(TerminalCommand("chmod 600 '$configFile' 2>/dev/null || true"))
+            connection.execute("chmod 600 '$configFile' 2>/dev/null || true")
 
             Log.v("Docker config permissions secured")
 
@@ -258,23 +255,21 @@ object DockerCredentialsManager {
     /**
      * Removes Docker credentials from remote host.
      *
-     * @param connection SSH connection to remote host
+     * @param connection Connection to remote host
      * @return true if cleanup successful
      */
-    fun cleanup(connection: SSH): Boolean {
+    fun cleanup(connection: Connection): Boolean {
         try {
             Log.i("Cleaning up Docker credentials...")
 
             val configFile = "\$HOME/$DOCKER_CONFIG_DIR/$DOCKER_CONFIG_FILE"
 
             // Check if config exists
-            val checkResult = connection.execute(
-                TerminalCommand("test -f '$configFile' && echo 'exists' || echo 'not_found'")
-            )
+            val checkResult = connection.execute("test -f '$configFile' && echo 'exists' || echo 'not_found'")
 
             if (checkResult.output.trim() == "exists") {
                 // Securely delete credentials
-                connection.execute(TerminalCommand("shred -u '$configFile' 2>/dev/null || rm -f '$configFile'"))
+                connection.execute("shred -u '$configFile' 2>/dev/null || rm -f '$configFile'")
 
                 Log.i("Docker credentials removed")
 
@@ -371,17 +366,15 @@ object DockerCredentialsManager {
     /**
      * Checks if Docker is logged in to registry.
      *
-     * @param connection SSH connection to remote host
+     * @param connection Connection to remote host
      * @param registry Docker registry URL
      * @return true if logged in
      */
-    fun isLoggedIn(connection: SSH, registry: String = DEFAULT_REGISTRY): Boolean {
+    fun isLoggedIn(connection: Connection, registry: String = DEFAULT_REGISTRY): Boolean {
         return try {
             val configFile = "\$HOME/$DOCKER_CONFIG_DIR/$DOCKER_CONFIG_FILE"
 
-            val checkResult = connection.execute(
-                TerminalCommand("test -f '$configFile' && grep -q '\"$registry\"' '$configFile' && echo 'yes' || echo 'no'")
-            )
+            val checkResult = connection.execute("test -f '$configFile' && grep -q '\"$registry\"' '$configFile' && echo 'yes' || echo 'no'")
 
             checkResult.output.trim() == "yes"
 

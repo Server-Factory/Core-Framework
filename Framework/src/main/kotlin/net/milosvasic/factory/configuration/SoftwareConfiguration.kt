@@ -72,7 +72,9 @@ data class SoftwareConfiguration(
                     config.setPlatform(platform)
                     instance.merge(config)
                 }
-                // TODO: Handle vars.
+                // Variable handling: Software configurations use fixed file paths and do not require
+                // dynamic variable substitution like the main configuration. If variable support is
+                // needed in the future, implement similar to Configuration.kt variable processing.
                 return instance
             } else {
 

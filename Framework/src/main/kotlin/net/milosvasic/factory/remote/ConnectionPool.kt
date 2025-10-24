@@ -1,8 +1,10 @@
 package net.milosvasic.factory.remote
 
 import net.milosvasic.logger.Log
-import net.milosvasic.factory.remote.ssh.SSH
-import net.milosvasic.factory.terminal.TerminalCommand
+import net.milosvasic.factory.connection.Connection as NewConnection
+import net.milosvasic.factory.connection.ConnectionConfig
+import net.milosvasic.factory.connection.ConnectionResult
+import net.milosvasic.factory.connection.ConnectionType
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -11,7 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Connection pool manager for SSH connections with lifecycle management.
+ * Connection pool manager for connections with lifecycle management.
  *
  * Features:
  * - Connection reuse to avoid creating multiple connections to same host
@@ -21,17 +23,18 @@ import java.util.concurrent.atomic.AtomicInteger
  * - Graceful shutdown with connection draining
  * - Configurable pool size limits
  * - Thread-safe operations
+ * - Supports all connection types (SSH, Docker, Kubernetes, etc.)
  *
  * Usage:
  * ```kotlin
  * // Get or create connection
- * val connection = ConnectionPool.getConnection(remote)
+ * val connection = ConnectionPool.getConnection(config)
  *
  * // Use connection
- * connection.execute(command)
+ * connection.execute("echo test")
  *
  * // Release connection (decrements reference count)
- * ConnectionPool.releaseConnection(remote)
+ * ConnectionPool.releaseConnection(config)
  *
  * // Shutdown pool when done
  * ConnectionPool.shutdown()
@@ -68,7 +71,7 @@ object ConnectionPool {
         Log.i("ConnectionPool initialized: maxSize=$maxPoolSize, idleTimeout=${idleTimeoutMillis / 1000}s, healthCheck=${healthCheckIntervalMillis / 1000}s")
     }
 
-    // Pool of connections keyed by remote identifier
+    // Pool of connections keyed by connection identifier
     private val connections = ConcurrentHashMap<String, PooledConnection>()
 
     // Scheduled executor for health checks and idle connection cleanup
@@ -81,12 +84,12 @@ object ConnectionPool {
     /**
      * Gets or creates a connection from the pool.
      *
-     * @param remote The remote server to connect to
-     * @return SSH connection (reused or newly created)
+     * @param config Connection configuration
+     * @return NewConnection (reused or newly created)
      * @throws IllegalStateException if pool is shutdown or full
      */
     @Synchronized
-    fun getConnection(remote: Remote): SSH {
+    fun getConnection(config: ConnectionConfig): NewConnection {
         if (isShutdown.get()) {
             throw IllegalStateException("ConnectionPool is shutdown")
         }
@@ -96,7 +99,7 @@ object ConnectionPool {
             startScheduler()
         }
 
-        val key = getConnectionKey(remote)
+        val key = getConnectionKey(config)
 
         // Get existing connection or create new one
         val pooled = connections.computeIfAbsent(key) {
@@ -109,8 +112,8 @@ object ConnectionPool {
                 }
             }
 
-            Log.i("Creating new connection to ${remote.getHostname()}")
-            createPooledConnection(remote)
+            Log.i("Creating new connection to ${config.host}")
+            createPooledConnection(config)
         }
 
         // Increment reference count
@@ -118,11 +121,11 @@ object ConnectionPool {
 
         // Verify connection is healthy
         if (!pooled.isHealthy()) {
-            Log.w("Connection to ${remote.getHostname()} is unhealthy, reconnecting...")
+            Log.w("Connection to ${config.host} is unhealthy, reconnecting...")
             pooled.reconnect()
         }
 
-        Log.v("Connection acquired: ${remote.getHostname()} (refs: ${pooled.refCount.get()})")
+        Log.v("Connection acquired: ${config.host} (refs: ${pooled.refCount.get()})")
 
         return pooled.connection
     }
@@ -132,19 +135,19 @@ object ConnectionPool {
      *
      * Decrements reference count. When count reaches zero, connection becomes eligible for cleanup.
      *
-     * @param remote The remote server
+     * @param config The connection configuration
      */
     @Synchronized
-    fun releaseConnection(remote: Remote) {
-        val key = getConnectionKey(remote)
+    fun releaseConnection(config: ConnectionConfig) {
+        val key = getConnectionKey(config)
 
         connections[key]?.let { pooled ->
             pooled.release()
-            Log.v("Connection released: ${remote.getHostname()} (refs: ${pooled.refCount.get()})")
+            Log.v("Connection released: ${config.host} (refs: ${pooled.refCount.get()})")
 
             // If no more references and past idle timeout, close immediately
             if (pooled.refCount.get() == 0 && pooled.isIdle()) {
-                Log.i("Closing idle connection to ${remote.getHostname()}")
+                Log.i("Closing idle connection to ${config.host}")
                 removeConnection(key, pooled)
             }
         }
@@ -153,14 +156,14 @@ object ConnectionPool {
     /**
      * Forces closure of a specific connection.
      *
-     * @param remote The remote server
+     * @param config The connection configuration
      */
     @Synchronized
-    fun closeConnection(remote: Remote) {
-        val key = getConnectionKey(remote)
+    fun closeConnection(config: ConnectionConfig) {
+        val key = getConnectionKey(config)
 
         connections[key]?.let { pooled ->
-            Log.i("Force closing connection to ${remote.getHostname()}")
+            Log.i("Force closing connection to ${config.host}")
             removeConnection(key, pooled)
         }
     }
@@ -223,13 +226,13 @@ object ConnectionPool {
 
                 if (pooled.refCount.get() == 0) {
                     // No active references - close immediately
-                    Log.i("Closing connection to ${pooled.remote.getHostname()}")
+                    Log.i("Closing connection to ${pooled.config.host}")
                     pooled.close()
                     activeConnections.decrementAndGet()
                     iterator.remove()
                 } else {
                     // Active connection - wait for release
-                    Log.v("Waiting for connection to ${pooled.remote.getHostname()} to be released (refs: ${pooled.refCount.get()})")
+                    Log.v("Waiting for connection to ${pooled.config.host} to be released (refs: ${pooled.refCount.get()})")
                 }
             }
 
@@ -240,7 +243,7 @@ object ConnectionPool {
 
         // Force close any remaining connections
         connections.forEach { (_, pooled) ->
-            Log.w("Force closing connection to ${pooled.remote.getHostname()} (refs: ${pooled.refCount.get()})")
+            Log.w("Force closing connection to ${pooled.config.host} (refs: ${pooled.refCount.get()})")
             pooled.close()
         }
 
@@ -253,10 +256,31 @@ object ConnectionPool {
     /**
      * Creates a pooled connection wrapper.
      */
-    private fun createPooledConnection(remote: Remote): PooledConnection {
-        val connection = SSH(remote)
+    private fun createPooledConnection(config: ConnectionConfig): PooledConnection {
+        // Create connection based on type
+        val connection = when (config.type) {
+            ConnectionType.SSH -> net.milosvasic.factory.connection.impl.SSHConnectionImpl(config)
+            ConnectionType.SSH_AGENT -> net.milosvasic.factory.connection.impl.SSHAgentConnectionImpl(config)
+            ConnectionType.SSH_CERTIFICATE -> net.milosvasic.factory.connection.impl.SSHCertificateConnectionImpl(config)
+            ConnectionType.SSH_BASTION -> net.milosvasic.factory.connection.impl.SSHBastionConnectionImpl(config)
+            ConnectionType.DOCKER -> net.milosvasic.factory.connection.impl.DockerConnectionImpl(config)
+            ConnectionType.KUBERNETES -> net.milosvasic.factory.connection.impl.KubernetesConnectionImpl(config)
+            ConnectionType.WINRM -> net.milosvasic.factory.connection.impl.WinRMConnectionImpl(config)
+            ConnectionType.ANSIBLE -> net.milosvasic.factory.connection.impl.AnsibleConnectionImpl(config)
+            ConnectionType.AWS_SSM -> net.milosvasic.factory.connection.impl.AWSSSMConnectionImpl(config)
+            ConnectionType.AZURE_SERIAL -> net.milosvasic.factory.connection.impl.AzureSerialConnectionImpl(config)
+            ConnectionType.GCP_OS_LOGIN -> net.milosvasic.factory.connection.impl.GCPOSLoginConnectionImpl(config)
+            ConnectionType.LOCAL -> net.milosvasic.factory.connection.impl.LocalConnectionImpl(config)
+        }
+
+        // Connect immediately
+        val result = connection.connect()
+        if (result.isFailed()) {
+            throw IllegalStateException("Failed to connect: ${(result as ConnectionResult.Failure).error}")
+        }
+
         activeConnections.incrementAndGet()
-        return PooledConnection(remote, connection)
+        return PooledConnection(config, connection)
     }
 
     /**
@@ -269,10 +293,10 @@ object ConnectionPool {
     }
 
     /**
-     * Gets a unique key for a remote connection.
+     * Gets a unique key for a connection.
      */
-    private fun getConnectionKey(remote: Remote): String {
-        return "${remote.getHostname()}:${remote.getPort()}:${remote.getCredentials().getUsername()}"
+    private fun getConnectionKey(config: ConnectionConfig): String {
+        return "${config.host}:${config.port}:${config.credentials?.username ?: "default"}"
     }
 
     /**
@@ -313,16 +337,16 @@ object ConnectionPool {
         connections.forEach { (_, pooled) ->
             try {
                 if (!pooled.isHealthy()) {
-                    Log.w("Connection to ${pooled.remote.getHostname()} failed health check")
+                    Log.w("Connection to ${pooled.config.host} failed health check")
 
                     // Attempt reconnection for active connections
                     if (pooled.refCount.get() > 0) {
-                        Log.i("Attempting to reconnect active connection to ${pooled.remote.getHostname()}")
+                        Log.i("Attempting to reconnect active connection to ${pooled.config.host}")
                         pooled.reconnect()
                     }
                 }
             } catch (e: Exception) {
-                Log.e("Health check failed for ${pooled.remote.getHostname()}: ${e.message}")
+                Log.e("Health check failed for ${pooled.config.host}: ${e.message}")
             }
         }
     }
@@ -341,7 +365,7 @@ object ConnectionPool {
             val pooled = entry.value
 
             if (pooled.refCount.get() == 0 && pooled.isIdle()) {
-                Log.i("Evicting idle connection to ${pooled.remote.getHostname()} (idle for ${pooled.getIdleTimeSeconds()}s)")
+                Log.i("Evicting idle connection to ${pooled.config.host} (idle for ${pooled.getIdleTimeSeconds()}s)")
                 pooled.close()
                 activeConnections.decrementAndGet()
                 iterator.remove()
@@ -358,12 +382,11 @@ object ConnectionPool {
      * Wrapper for a pooled connection with lifecycle management.
      */
     private class PooledConnection(
-        val remote: Remote,
-        val connection: SSH
+        val config: ConnectionConfig,
+        val connection: NewConnection
     ) {
         val refCount = AtomicInteger(0)
         private var lastAccessTime = System.currentTimeMillis()
-        private val isConnected = AtomicBoolean(false)
 
         /**
          * Acquires the connection (increments reference count).
@@ -385,14 +408,15 @@ object ConnectionPool {
          * Checks if connection is healthy.
          */
         fun isHealthy(): Boolean {
-            if (!isConnected.get()) {
-                return false
-            }
-
             return try {
+                // Check if connected
+                if (!connection.isConnected()) {
+                    return false
+                }
+
                 // Execute simple command to verify connectivity
-                connection.execute(TerminalCommand("echo ping"))
-                true
+                val result = connection.execute("echo ping", timeout = 5)
+                result.success && result.output.contains("ping")
             } catch (e: Exception) {
                 false
             }
@@ -403,13 +427,16 @@ object ConnectionPool {
          */
         fun reconnect() {
             try {
-                // Note: Current SSH implementation doesn't have explicit connect/disconnect
-                // This would need to be enhanced in the SSH class
-                isConnected.set(true)
-                Log.i("Reconnected to ${remote.getHostname()}")
+                connection.disconnect()
+                val result = connection.connect()
+                if (result.isSuccess()) {
+                    Log.i("Reconnected to ${config.host}")
+                } else {
+                    Log.e("Reconnection failed to ${config.host}: ${(result as ConnectionResult.Failure).error}")
+                    throw Exception("Reconnection failed")
+                }
             } catch (e: Exception) {
-                isConnected.set(false)
-                Log.e("Reconnection failed to ${remote.getHostname()}: ${e.message}")
+                Log.e("Reconnection failed to ${config.host}: ${e.message}")
                 throw e
             }
         }
@@ -434,12 +461,10 @@ object ConnectionPool {
          */
         fun close() {
             try {
-                // Note: Current SSH implementation doesn't have explicit close
-                // This would need to be enhanced in the SSH class
-                isConnected.set(false)
-                Log.v("Closed connection to ${remote.getHostname()}")
+                connection.disconnect()
+                Log.v("Closed connection to ${config.host}")
             } catch (e: Exception) {
-                Log.e("Error closing connection to ${remote.getHostname()}: ${e.message}")
+                Log.e("Error closing connection to ${config.host}: ${e.message}")
             }
         }
     }

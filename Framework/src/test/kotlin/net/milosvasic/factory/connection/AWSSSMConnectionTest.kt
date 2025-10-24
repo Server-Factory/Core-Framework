@@ -144,7 +144,7 @@ class AWSSSMConnectionTest {
         val connection = AWSSSMConnectionImpl(config)
         val result = connection.validateConfig()
 
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test
@@ -209,7 +209,7 @@ class AWSSSMConnectionTest {
 
             val connection = AWSSSMConnectionImpl(testConfig)
             val result = connection.validateConfig()
-            assertTrue(result.isValid(), "Region $region should be valid")
+            assertTrue(result.isSuccess(), "Region $region should be valid")
         }
     }
 

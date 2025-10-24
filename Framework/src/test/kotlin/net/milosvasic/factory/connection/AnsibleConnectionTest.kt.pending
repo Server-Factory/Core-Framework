@@ -163,7 +163,7 @@ class AnsibleConnectionTest {
         val connection = AnsibleConnectionImpl(config)
         val result = connection.validateConfig()
 
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test

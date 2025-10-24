@@ -144,7 +144,7 @@ class AzureSerialConnectionTest {
         val connection = AzureSerialConnectionImpl(config)
         val result = connection.validateConfig()
 
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test

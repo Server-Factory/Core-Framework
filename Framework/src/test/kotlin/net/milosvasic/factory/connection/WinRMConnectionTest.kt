@@ -152,7 +152,7 @@ class WinRMConnectionTest {
         val connection = WinRMConnectionImpl(config)
         val result = connection.validateConfig()
 
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test
@@ -200,7 +200,7 @@ class WinRMConnectionTest {
 
             val connection = WinRMConnectionImpl(testConfig)
             val result = connection.validateConfig()
-            assertTrue(result.isValid(), "Auth type $authType should be valid")
+            assertTrue(result.isSuccess(), "Auth type $authType should be valid")
         }
     }
 

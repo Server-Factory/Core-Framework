@@ -157,7 +157,7 @@ class GCPOSLoginConnectionTest {
         val connection = GCPOSLoginConnectionImpl(config)
         val result = connection.validateConfig()
 
-        assertTrue(result.isValid())
+        assertTrue(result.isSuccess())
     }
 
     @Test
@@ -243,7 +243,7 @@ class GCPOSLoginConnectionTest {
 
             val connection = GCPOSLoginConnectionImpl(testConfig)
             val result = connection.validateConfig()
-            assertTrue(result.isValid(), "Zone $zone should be valid")
+            assertTrue(result.isSuccess(), "Zone $zone should be valid")
         }
     }
 

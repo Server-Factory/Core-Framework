@@ -1,8 +1,7 @@
 package net.milosvasic.factory.security
 
 import net.milosvasic.logger.Log
-import net.milosvasic.factory.remote.ssh.SSH
-import net.milosvasic.factory.terminal.TerminalCommand
+import net.milosvasic.factory.connection.Connection
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -34,13 +33,13 @@ object CertificateValidator {
     /**
      * Validates a certificate file on remote host.
      *
-     * @param connection SSH connection to remote host
+     * @param connection Connection to remote host
      * @param certPath Path to certificate file
      * @param certType Type of certificate (for logging)
      * @return CertificateValidationResult
      */
     fun validateCertificate(
-        connection: SSH,
+        connection: Connection,
         certPath: String,
         certType: String = "SSL"
     ): CertificateValidationResult {
@@ -140,13 +139,13 @@ object CertificateValidator {
     /**
      * Validates certificate for a domain.
      *
-     * @param connection SSH connection to remote host
+     * @param connection Connection to remote host
      * @param domain Domain name
      * @param port Port number (default: 443)
      * @return CertificateValidationResult
      */
     fun validateDomainCertificate(
-        connection: SSH,
+        connection: Connection,
         domain: String,
         port: Int = 443
     ): CertificateValidationResult {
@@ -159,7 +158,7 @@ object CertificateValidator {
                 openssl x509 -noout -text
             """.trimIndent()
 
-            val result = connection.execute(TerminalCommand(certCommand))
+            val result = connection.execute(certCommand)
 
             if (!result.success || result.output.isEmpty()) {
                 return CertificateValidationResult(
@@ -244,12 +243,12 @@ object CertificateValidator {
     /**
      * Validates all mail server certificates.
      *
-     * @param connection SSH connection to remote host
+     * @param connection Connection to remote host
      * @param certPaths Map of certificate type to file path
      * @return Map of certificate type to validation result
      */
     fun validateMailServerCertificates(
-        connection: SSH,
+        connection: Connection,
         certPaths: Map<String, String>
     ): Map<String, CertificateValidationResult> {
         Log.i("Validating mail server certificates...")
@@ -281,11 +280,9 @@ object CertificateValidator {
     /**
      * Checks if certificate file exists.
      */
-    private fun checkFileExists(connection: SSH, path: String): Boolean {
+    private fun checkFileExists(connection: Connection, path: String): Boolean {
         return try {
-            val result = connection.execute(
-                TerminalCommand("test -f '$path' && echo 'exists' || echo 'not_found'")
-            )
+            val result = connection.execute("test -f '$path' && echo 'exists' || echo 'not_found'")
             result.output.trim() == "exists"
         } catch (e: Exception) {
             false
@@ -295,10 +292,8 @@ object CertificateValidator {
     /**
      * Gets certificate information using openssl.
      */
-    private fun getCertificateInfo(connection: SSH, certPath: String): String {
-        val result = connection.execute(
-            TerminalCommand("openssl x509 -in '$certPath' -noout -text")
-        )
+    private fun getCertificateInfo(connection: Connection, certPath: String): String {
+        val result = connection.execute("openssl x509 -in '$certPath' -noout -text")
         return result.output
     }
 
