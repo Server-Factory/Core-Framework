@@ -1,0 +1,272 @@
+package net.milosvasic.factory.connection
+
+import net.milosvasic.factory.connection.impl.SSHBastionConnectionImpl
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+
+/**
+ * Unit tests for SSHBastionConnectionImpl.
+ *
+ * @author Mail Server Factory Team
+ * @since 3.1.0
+ */
+class SSHBastionConnectionTest {
+
+    private lateinit var bastionConfig: ConnectionConfig
+    private lateinit var targetConfig: ConnectionConfig
+
+    @BeforeEach
+    fun setUp() {
+        // Configure bastion host
+        bastionConfig = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH)
+            .host("bastion.example.com")
+            .port(22)
+            .credentials(Credentials(
+                username = "bastion-user",
+                keyPath = "/path/to/bastion_key"
+            ))
+            .build()
+
+        // Configure target host with bastion
+        targetConfig = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH_BASTION)
+            .host("internal-mail.local")
+            .port(22)
+            .credentials(Credentials(
+                username = "mailserver",
+                password = "encrypted:AES256:IV:salt:pass"
+            ))
+            .bastionConfig(bastionConfig)
+            .build()
+    }
+
+    @Test
+    @DisplayName("Test SSH Bastion connection creation")
+    fun testSSHBastionConnectionCreation() {
+        val connection = SSHBastionConnectionImpl(targetConfig)
+        assertNotNull(connection)
+    }
+
+    @Test
+    @DisplayName("Test connection metadata")
+    fun testConnectionMetadata() {
+        val connection = SSHBastionConnectionImpl(targetConfig)
+        val metadata = connection.getMetadata()
+
+        assertEquals(ConnectionType.SSH_BASTION, metadata.type)
+        assertEquals("internal-mail.local", metadata.host)
+        assertEquals(22, metadata.port)
+    }
+
+    @Test
+    @DisplayName("Test metadata shows SSH Bastion auth method")
+    fun testMetadataShowsSSHBastionAuthMethod() {
+        val connection = SSHBastionConnectionImpl(targetConfig)
+        val metadata = connection.getMetadata()
+
+        assertEquals("SSH Bastion", metadata.properties["authMethod"])
+    }
+
+    @Test
+    @DisplayName("Test metadata contains bastion host info")
+    fun testMetadataContainsBastionHostInfo() {
+        val connection = SSHBastionConnectionImpl(targetConfig)
+        val metadata = connection.getMetadata()
+
+        assertEquals("bastion.example.com", metadata.properties["bastionHost"])
+        assertEquals("22", metadata.properties["bastionPort"])
+    }
+
+    @Test
+    @DisplayName("Test metadata contains bastion username")
+    fun testMetadataContainsBastionUsername() {
+        val connection = SSHBastionConnectionImpl(targetConfig)
+        val metadata = connection.getMetadata()
+
+        assertEquals("bastion-user", metadata.properties["bastionUsername"])
+    }
+
+    @Test
+    @DisplayName("Test metadata contains target host info")
+    fun testMetadataContainsTargetHostInfo() {
+        val connection = SSHBastionConnectionImpl(targetConfig)
+        val metadata = connection.getMetadata()
+
+        assertEquals("internal-mail.local", metadata.properties["targetHost"])
+        assertEquals("22", metadata.properties["targetPort"])
+    }
+
+    @Test
+    @DisplayName("Test isConnected returns false before connection")
+    fun testIsConnectedBeforeConnection() {
+        val connection = SSHBastionConnectionImpl(targetConfig)
+        assertFalse(connection.isConnected())
+    }
+
+    @Test
+    @DisplayName("Test execute fails when not connected")
+    fun testExecuteFailsWhenNotConnected() {
+        val connection = SSHBastionConnectionImpl(targetConfig)
+        val result = connection.execute("echo test")
+
+        assertFalse(result.success)
+        assertTrue(result.errorOutput.contains("Not connected"))
+    }
+
+    @Test
+    @DisplayName("Test upload fails when not connected")
+    fun testUploadFailsWhenNotConnected() {
+        val connection = SSHBastionConnectionImpl(targetConfig)
+        val result = connection.uploadFile("/tmp/test.txt", "/tmp/remote.txt")
+
+        assertFalse(result.success)
+    }
+
+    @Test
+    @DisplayName("Test download fails when not connected")
+    fun testDownloadFailsWhenNotConnected() {
+        val connection = SSHBastionConnectionImpl(targetConfig)
+        val result = connection.downloadFile("/tmp/remote.txt", "/tmp/local.txt")
+
+        assertFalse(result.success)
+    }
+
+    @Test
+    @DisplayName("Test health check when not connected")
+    fun testHealthCheckWhenNotConnected() {
+        val connection = SSHBastionConnectionImpl(targetConfig)
+        val health = connection.getHealth()
+
+        assertFalse(health.isHealthy)
+    }
+
+    @Test
+    @DisplayName("Test config validation with valid bastion config")
+    fun testConfigValidationWithValidBastionConfig() {
+        val connection = SSHBastionConnectionImpl(targetConfig)
+        val result = connection.validateConfig()
+
+        assertTrue(result.isValid())
+    }
+
+    @Test
+    @DisplayName("Test config validation fails without bastion config")
+    fun testConfigValidationFailsWithoutBastionConfig() {
+        val invalidConfig = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH_BASTION)
+            .host("internal-mail.local")
+            .port(22)
+            .credentials(Credentials(
+                username = "mailserver",
+                password = "encrypted:AES256:IV:salt:pass"
+            ))
+            // Missing bastionConfig
+            .build()
+
+        val connection = SSHBastionConnectionImpl(invalidConfig)
+        val result = connection.validateConfig()
+
+        assertTrue(result.isFailed())
+    }
+
+    @Test
+    @DisplayName("Test config validation fails with invalid bastion host")
+    fun testConfigValidationFailsWithInvalidBastionHost() {
+        val invalidBastionConfig = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH)
+            .host("")  // Invalid empty host
+            .port(22)
+            .credentials(Credentials(
+                username = "bastion-user",
+                keyPath = "/path/to/bastion_key"
+            ))
+            .build()
+
+        val invalidConfig = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH_BASTION)
+            .host("internal-mail.local")
+            .port(22)
+            .credentials(Credentials(
+                username = "mailserver",
+                password = "encrypted:AES256:IV:salt:pass"
+            ))
+            .bastionConfig(invalidBastionConfig)
+            .build()
+
+        val connection = SSHBastionConnectionImpl(invalidConfig)
+        val result = connection.validateConfig()
+
+        assertTrue(result.isFailed())
+    }
+
+    @Test
+    @DisplayName("Test disconnect when not connected")
+    fun testDisconnectWhenNotConnected() {
+        val connection = SSHBastionConnectionImpl(targetConfig)
+
+        assertDoesNotThrow {
+            connection.disconnect()
+        }
+    }
+
+    @Test
+    @DisplayName("Test close releases resources")
+    fun testCloseReleasesResources() {
+        val connection = SSHBastionConnectionImpl(targetConfig)
+
+        assertDoesNotThrow {
+            connection.close()
+        }
+
+        assertFalse(connection.isConnected())
+    }
+
+    @Test
+    @DisplayName("Test metadata display name")
+    fun testMetadataDisplayName() {
+        val connection = SSHBastionConnectionImpl(targetConfig)
+        val metadata = connection.getMetadata()
+
+        assertEquals("mailserver@internal-mail.local:22 (via bastion.example.com)", metadata.displayName)
+    }
+
+    @Test
+    @DisplayName("Test metadata properties contain protocol")
+    fun testMetadataPropertiesContainProtocol() {
+        val connection = SSHBastionConnectionImpl(targetConfig)
+        val metadata = connection.getMetadata()
+
+        assertEquals("SSH", metadata.properties["protocol"])
+    }
+
+    @Test
+    @DisplayName("Test metadata to map conversion")
+    fun testMetadataToMapConversion() {
+        val connection = SSHBastionConnectionImpl(targetConfig)
+        val metadata = connection.getMetadata()
+        val map = metadata.toMap()
+
+        assertEquals("SSH_BASTION", map["type"])
+        assertEquals("internal-mail.local", map["host"])
+        assertEquals("22", map["port"])
+        assertEquals("bastion.example.com", map["bastionHost"])
+    }
+
+    @Test
+    @DisplayName("Test bastion info extraction from metadata")
+    fun testBastionInfoExtractionFromMetadata() {
+        val connection = SSHBastionConnectionImpl(targetConfig)
+        val metadata = connection.getMetadata()
+
+        // Should contain bastion-related properties
+        assertTrue(metadata.properties.containsKey("bastionHost"))
+        assertTrue(metadata.properties.containsKey("bastionPort"))
+        assertTrue(metadata.properties.containsKey("bastionUsername"))
+        assertTrue(metadata.properties.containsKey("targetHost"))
+        assertTrue(metadata.properties.containsKey("targetPort"))
+        assertTrue(metadata.properties.containsKey("authMethod"))
+    }
+}

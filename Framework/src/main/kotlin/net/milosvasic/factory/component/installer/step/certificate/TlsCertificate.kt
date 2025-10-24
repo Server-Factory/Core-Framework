@@ -52,7 +52,7 @@ class TlsCertificate(name: String) : Certificate(name) {
 
             val passIn = "-passin pass:$passPhrase"
             val passOut = "-passout pass:$passPhrase"
-            val permission600 = Permissions(Permission(6), Permission.NONE, Permission.NONE).obtain()
+            val permission600 = Permissions(Permission(6), Permission.NO_PERMISSIONS, Permission.NO_PERMISSIONS).obtain()
 
             val crtVerificationCommand = TestCommand(
 

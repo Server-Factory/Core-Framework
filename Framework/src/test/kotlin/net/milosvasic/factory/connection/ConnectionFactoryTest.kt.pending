@@ -1,0 +1,433 @@
+package net.milosvasic.factory.connection
+
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.assertThrows
+
+/**
+ * Unit tests for ConnectionFactory.
+ *
+ * Tests connection creation for all 12 connection types,
+ * validation, error handling, and factory methods.
+ *
+ * @author Mail Server Factory Team
+ * @since 3.1.0
+ */
+class ConnectionFactoryTest {
+
+    @Test
+    @DisplayName("Test SSH connection creation")
+    fun testCreateSSHConnection() {
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH)
+            .host("test.example.com")
+            .port(22)
+            .credentials(Credentials("testuser", password = "testpass"))
+            .build()
+
+        val connection = ConnectionFactory.createConnection(config)
+
+        assertNotNull(connection)
+        assertEquals(ConnectionType.SSH, connection.getMetadata().type)
+    }
+
+    @Test
+    @DisplayName("Test SSH Agent connection creation")
+    fun testCreateSSHAgentConnection() {
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH_AGENT)
+            .host("test.example.com")
+            .port(22)
+            .credentials(Credentials("testuser", agentSocket = "/tmp/ssh-agent.sock"))
+            .build()
+
+        val connection = ConnectionFactory.createConnection(config)
+
+        assertNotNull(connection)
+        assertEquals(ConnectionType.SSH_AGENT, connection.getMetadata().type)
+    }
+
+    @Test
+    @DisplayName("Test SSH Certificate connection creation")
+    fun testCreateSSHCertificateConnection() {
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH_CERTIFICATE)
+            .host("test.example.com")
+            .port(22)
+            .credentials(Credentials(
+                "testuser",
+                keyPath = "/path/to/key",
+                certificatePath = "/path/to/cert"
+            ))
+            .build()
+
+        val connection = ConnectionFactory.createConnection(config)
+
+        assertNotNull(connection)
+        assertEquals(ConnectionType.SSH_CERTIFICATE, connection.getMetadata().type)
+    }
+
+    @Test
+    @DisplayName("Test SSH Bastion connection creation")
+    fun testCreateSSHBastionConnection() {
+        val bastionConfig = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH)
+            .host("bastion.example.com")
+            .port(22)
+            .credentials(Credentials("bastionuser", password = "bastionpass"))
+            .build()
+
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH_BASTION)
+            .host("target.internal")
+            .port(22)
+            .credentials(Credentials("targetuser", password = "targetpass"))
+            .bastionConfig(bastionConfig)
+            .build()
+
+        val connection = ConnectionFactory.createConnection(config)
+
+        assertNotNull(connection)
+        assertEquals(ConnectionType.SSH_BASTION, connection.getMetadata().type)
+    }
+
+    @Test
+    @DisplayName("Test WinRM connection creation")
+    fun testCreateWinRMConnection() {
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.WINRM)
+            .host("windows.example.com")
+            .port(5985)
+            .credentials(Credentials("Administrator", password = "adminpass"))
+            .build()
+
+        val connection = ConnectionFactory.createConnection(config)
+
+        assertNotNull(connection)
+        assertEquals(ConnectionType.WINRM, connection.getMetadata().type)
+    }
+
+    @Test
+    @DisplayName("Test Ansible connection creation")
+    fun testCreateAnsibleConnection() {
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.ANSIBLE)
+            .host("web-servers")
+            .port(22)
+            .credentials(Credentials("ansible", keyPath = "/path/to/key"))
+            .build()
+
+        val connection = ConnectionFactory.createConnection(config)
+
+        assertNotNull(connection)
+        assertEquals(ConnectionType.ANSIBLE, connection.getMetadata().type)
+    }
+
+    @Test
+    @DisplayName("Test Docker connection creation")
+    fun testCreateDockerConnection() {
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.DOCKER)
+            .host("unix:///var/run/docker.sock")
+            .port(0)
+            .containerConfig(ContainerConfig(
+                containerType = ContainerType.DOCKER,
+                containerName = "test-container",
+                dockerHost = "unix:///var/run/docker.sock"
+            ))
+            .build()
+
+        val connection = ConnectionFactory.createConnection(config)
+
+        assertNotNull(connection)
+        assertEquals(ConnectionType.DOCKER, connection.getMetadata().type)
+    }
+
+    @Test
+    @DisplayName("Test Kubernetes connection creation")
+    fun testCreateKubernetesConnection() {
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.KUBERNETES)
+            .host("k8s-cluster.example.com")
+            .port(443)
+            .containerConfig(ContainerConfig(
+                containerType = ContainerType.KUBERNETES,
+                namespace = "default",
+                podSelector = "app=test",
+                kubeconfig = "/path/to/kubeconfig"
+            ))
+            .build()
+
+        val connection = ConnectionFactory.createConnection(config)
+
+        assertNotNull(connection)
+        assertEquals(ConnectionType.KUBERNETES, connection.getMetadata().type)
+    }
+
+    @Test
+    @DisplayName("Test AWS SSM connection creation")
+    fun testCreateAWSSSMConnection() {
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.AWS_SSM)
+            .host("i-1234567890")
+            .port(0)
+            .cloudConfig(CloudConfig(
+                provider = CloudProvider.AWS,
+                region = "us-east-1",
+                instanceId = "i-1234567890"
+            ))
+            .build()
+
+        val connection = ConnectionFactory.createConnection(config)
+
+        assertNotNull(connection)
+        assertEquals(ConnectionType.AWS_SSM, connection.getMetadata().type)
+    }
+
+    @Test
+    @DisplayName("Test Azure Serial connection creation")
+    fun testCreateAzureSerialConnection() {
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.AZURE_SERIAL)
+            .host("test-vm")
+            .port(0)
+            .cloudConfig(CloudConfig(
+                provider = CloudProvider.AZURE,
+                subscriptionId = "12345678-1234-1234-1234-123456789012",
+                resourceGroup = "test-rg",
+                vmName = "test-vm"
+            ))
+            .build()
+
+        val connection = ConnectionFactory.createConnection(config)
+
+        assertNotNull(connection)
+        assertEquals(ConnectionType.AZURE_SERIAL, connection.getMetadata().type)
+    }
+
+    @Test
+    @DisplayName("Test GCP OS Login connection creation")
+    fun testCreateGCPOSLoginConnection() {
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.GCP_OS_LOGIN)
+            .host("test-instance")
+            .port(22)
+            .cloudConfig(CloudConfig(
+                provider = CloudProvider.GCP,
+                project = "test-project",
+                zone = "us-central1-a",
+                instanceId = "test-instance"
+            ))
+            .build()
+
+        val connection = ConnectionFactory.createConnection(config)
+
+        assertNotNull(connection)
+        assertEquals(ConnectionType.GCP_OS_LOGIN, connection.getMetadata().type)
+    }
+
+    @Test
+    @DisplayName("Test Local connection creation")
+    fun testCreateLocalConnection() {
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.LOCAL)
+            .host("localhost")
+            .port(0)
+            .build()
+
+        val connection = ConnectionFactory.createConnection(config)
+
+        assertNotNull(connection)
+        assertEquals(ConnectionType.LOCAL, connection.getMetadata().type)
+    }
+
+    @Test
+    @DisplayName("Test convenience method - createSSHConnection")
+    fun testConvenienceCreateSSHConnection() {
+        val connection = ConnectionFactory.createSSHConnection(
+            host = "test.example.com",
+            port = 22,
+            username = "testuser",
+            password = "testpass"
+        )
+
+        assertNotNull(connection)
+        val metadata = connection.getMetadata()
+        assertEquals(ConnectionType.SSH, metadata.type)
+        assertEquals("test.example.com", metadata.host)
+        assertEquals(22, metadata.port)
+    }
+
+    @Test
+    @DisplayName("Test convenience method - createLocalConnection")
+    fun testConvenienceCreateLocalConnection() {
+        val connection = ConnectionFactory.createLocalConnection("/tmp")
+
+        assertNotNull(connection)
+        assertEquals(ConnectionType.LOCAL, connection.getMetadata().type)
+    }
+
+    @Test
+    @DisplayName("Test convenience method - createDockerConnection")
+    fun testConvenienceCreateDockerConnection() {
+        val connection = ConnectionFactory.createDockerConnection(
+            containerName = "test-container",
+            dockerHost = "unix:///var/run/docker.sock"
+        )
+
+        assertNotNull(connection)
+        assertEquals(ConnectionType.DOCKER, connection.getMetadata().type)
+    }
+
+    @Test
+    @DisplayName("Test connection registration")
+    fun testConnectionRegistration() {
+        val initialCount = ConnectionFactory.getConnectionCount()
+
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.LOCAL)
+            .host("localhost")
+            .port(0)
+            .build()
+
+        ConnectionFactory.createConnection(config)
+
+        val newCount = ConnectionFactory.getConnectionCount()
+        assertEquals(initialCount + 1, newCount)
+    }
+
+    @Test
+    @DisplayName("Test get active connections")
+    fun testGetActiveConnections() {
+        val connections = ConnectionFactory.getActiveConnections()
+        assertNotNull(connections)
+        assertTrue(connections.size >= 0)
+    }
+
+    @Test
+    @DisplayName("Test validate configuration")
+    fun testValidateConfiguration() {
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH)
+            .host("test.example.com")
+            .port(22)
+            .credentials(Credentials("testuser", password = "testpass"))
+            .build()
+
+        val result = ConnectionFactory.validateConfiguration(config)
+        assertTrue(result.isValid())
+    }
+
+    @Test
+    @DisplayName("Test validate invalid configuration")
+    fun testValidateInvalidConfiguration() {
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH)
+            .host("") // Invalid host
+            .port(22)
+            .credentials(Credentials("testuser", password = "testpass"))
+            .build()
+
+        val result = ConnectionFactory.validateConfiguration(config)
+        assertTrue(result.isFailed())
+    }
+
+    @Test
+    @DisplayName("Test get supported types")
+    fun testGetSupportedTypes() {
+        val types = ConnectionFactory.getSupportedTypes()
+
+        assertEquals(12, types.size)
+        assertTrue(types.contains(ConnectionType.SSH))
+        assertTrue(types.contains(ConnectionType.SSH_AGENT))
+        assertTrue(types.contains(ConnectionType.SSH_CERTIFICATE))
+        assertTrue(types.contains(ConnectionType.SSH_BASTION))
+        assertTrue(types.contains(ConnectionType.WINRM))
+        assertTrue(types.contains(ConnectionType.ANSIBLE))
+        assertTrue(types.contains(ConnectionType.DOCKER))
+        assertTrue(types.contains(ConnectionType.KUBERNETES))
+        assertTrue(types.contains(ConnectionType.AWS_SSM))
+        assertTrue(types.contains(ConnectionType.AZURE_SERIAL))
+        assertTrue(types.contains(ConnectionType.GCP_OS_LOGIN))
+        assertTrue(types.contains(ConnectionType.LOCAL))
+    }
+
+    @Test
+    @DisplayName("Test is type supported")
+    fun testIsTypeSupported() {
+        assertTrue(ConnectionFactory.isTypeSupported(ConnectionType.SSH))
+        assertTrue(ConnectionFactory.isTypeSupported(ConnectionType.DOCKER))
+        assertTrue(ConnectionFactory.isTypeSupported(ConnectionType.LOCAL))
+    }
+
+    @Test
+    @DisplayName("Test invalid configuration throws exception")
+    fun testInvalidConfigurationThrowsException() {
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH_BASTION)
+            .host("test.example.com")
+            .port(22)
+            .credentials(Credentials("testuser", password = "testpass"))
+            // Missing bastionConfig - should fail
+            .build()
+
+        assertThrows<ConnectionException> {
+            ConnectionFactory.createConnection(config)
+        }
+    }
+
+    @Test
+    @DisplayName("Test Docker config without container name throws exception")
+    fun testDockerConfigWithoutContainerNameThrowsException() {
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.DOCKER)
+            .host("unix:///var/run/docker.sock")
+            .port(0)
+            .containerConfig(ContainerConfig(
+                containerType = ContainerType.DOCKER
+                // Missing containerName - should fail validation
+            ))
+            .build()
+
+        assertThrows<ConnectionException> {
+            ConnectionFactory.createConnection(config)
+        }
+    }
+
+    @Test
+    @DisplayName("Test Kubernetes config without namespace throws exception")
+    fun testKubernetesConfigWithoutNamespaceThrowsException() {
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.KUBERNETES)
+            .host("k8s-cluster.example.com")
+            .port(443)
+            .containerConfig(ContainerConfig(
+                containerType = ContainerType.KUBERNETES
+                // Missing namespace - should fail validation
+            ))
+            .build()
+
+        assertThrows<ConnectionException> {
+            ConnectionFactory.createConnection(config)
+        }
+    }
+
+    @Test
+    @DisplayName("Test cloud config validation for AWS")
+    fun testCloudConfigValidationAWS() {
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.AWS_SSM)
+            .host("i-1234567890")
+            .port(0)
+            .cloudConfig(CloudConfig(
+                provider = CloudProvider.AWS
+                // Missing region and instanceId - should fail validation
+            ))
+            .build()
+
+        assertThrows<ConnectionException> {
+            ConnectionFactory.createConnection(config)
+        }
+    }
+}

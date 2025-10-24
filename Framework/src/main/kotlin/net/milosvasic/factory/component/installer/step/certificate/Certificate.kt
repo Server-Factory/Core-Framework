@@ -44,7 +44,7 @@ open class Certificate(val name: String) : RemoteOperationInstallationStep<SSH>(
             val certHome = Variable.get(homeKeyPath)
             val certificates = Variable.get(keyPath)
 
-            val permission = Permissions(Permission(6), Permission.NONE, Permission.NONE)
+            val permission = Permissions(Permission(6), Permission.NO_PERMISSIONS, Permission.NO_PERMISSIONS)
             val perm = permission.obtain()
 
             val certificateExtension = ".crt"

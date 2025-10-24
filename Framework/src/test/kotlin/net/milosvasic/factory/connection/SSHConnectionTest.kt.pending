@@ -1,0 +1,284 @@
+package net.milosvasic.factory.connection
+
+import net.milosvasic.factory.connection.impl.SSHConnectionImpl
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
+
+/**
+ * Unit tests for SSHConnectionImpl.
+ *
+ * Note: These tests require a test SSH server or use mocking.
+ * Tagged with @Tag("integration") for tests requiring actual SSH connection.
+ *
+ * @author Mail Server Factory Team
+ * @since 3.1.0
+ */
+class SSHConnectionTest {
+
+    private lateinit var config: ConnectionConfig
+
+    @BeforeEach
+    fun setUp() {
+        config = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH)
+            .host("test.example.com")
+            .port(22)
+            .credentials(Credentials("testuser", password = "testpass"))
+            .build()
+    }
+
+    @Test
+    @DisplayName("Test SSH connection creation")
+    fun testSSHConnectionCreation() {
+        val connection = SSHConnectionImpl(config)
+        assertNotNull(connection)
+    }
+
+    @Test
+    @DisplayName("Test connection metadata")
+    fun testConnectionMetadata() {
+        val connection = SSHConnectionImpl(config)
+
+        // Note: Can get metadata before connecting
+        val metadata = connection.getMetadata()
+
+        assertEquals(ConnectionType.SSH, metadata.type)
+        assertEquals("test.example.com", metadata.host)
+        assertEquals(22, metadata.port)
+        assertEquals("testuser", metadata.username)
+    }
+
+    @Test
+    @DisplayName("Test isConnected returns false before connection")
+    fun testIsConnectedBeforeConnection() {
+        val connection = SSHConnectionImpl(config)
+        assertFalse(connection.isConnected())
+    }
+
+    @Test
+    @DisplayName("Test execute fails when not connected")
+    fun testExecuteFailsWhenNotConnected() {
+        val connection = SSHConnectionImpl(config)
+
+        val result = connection.execute("echo test")
+
+        assertFalse(result.success)
+        assertTrue(result.errorOutput.contains("Not connected"))
+    }
+
+    @Test
+    @DisplayName("Test upload fails when not connected")
+    fun testUploadFailsWhenNotConnected() {
+        val connection = SSHConnectionImpl(config)
+
+        val result = connection.uploadFile("/tmp/test.txt", "/tmp/remote.txt")
+
+        assertFalse(result.success)
+        assertTrue(result.message.contains("Not connected"))
+    }
+
+    @Test
+    @DisplayName("Test download fails when not connected")
+    fun testDownloadFailsWhenNotConnected() {
+        val connection = SSHConnectionImpl(config)
+
+        val result = connection.downloadFile("/tmp/remote.txt", "/tmp/local.txt")
+
+        assertFalse(result.success)
+        assertTrue(result.message.contains("Not connected"))
+    }
+
+    @Test
+    @DisplayName("Test health check when not connected")
+    fun testHealthCheckWhenNotConnected() {
+        val connection = SSHConnectionImpl(config)
+
+        val health = connection.getHealth()
+
+        assertFalse(health.isHealthy)
+        assertTrue(health.message.contains("Not connected"))
+    }
+
+    @Test
+    @DisplayName("Test config validation")
+    fun testConfigValidation() {
+        val connection = SSHConnectionImpl(config)
+
+        val result = connection.validateConfig()
+
+        assertTrue(result.isValid())
+    }
+
+    @Test
+    @DisplayName("Test SSH connection with key authentication")
+    fun testSSHConnectionWithKeyAuth() {
+        val keyConfig = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH)
+            .host("test.example.com")
+            .port(22)
+            .credentials(Credentials("testuser", keyPath = "/path/to/key"))
+            .build()
+
+        val connection = SSHConnectionImpl(keyConfig)
+        assertNotNull(connection)
+
+        val metadata = connection.getMetadata()
+        assertTrue(metadata.properties["authMethod"]?.contains("Key") ?: false)
+    }
+
+    @Test
+    @DisplayName("Test SSH connection with password authentication")
+    fun testSSHConnectionWithPasswordAuth() {
+        val connection = SSHConnectionImpl(config)
+
+        val metadata = connection.getMetadata()
+        assertTrue(metadata.properties["authMethod"]?.contains("Password") ?: false)
+    }
+
+    @Test
+    @DisplayName("Test SSH connection with custom port")
+    fun testSSHConnectionWithCustomPort() {
+        val customConfig = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH)
+            .host("test.example.com")
+            .port(2222)
+            .credentials(Credentials("testuser", password = "testpass"))
+            .build()
+
+        val connection = SSHConnectionImpl(customConfig)
+        val metadata = connection.getMetadata()
+
+        assertEquals(2222, metadata.port)
+    }
+
+    @Test
+    @DisplayName("Test SSH connection with options")
+    fun testSSHConnectionWithOptions() {
+        val optionsConfig = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH)
+            .host("test.example.com")
+            .port(22)
+            .credentials(Credentials("testuser", password = "testpass"))
+            .options(ConnectionOptions(
+                timeout = 60,
+                retries = 5,
+                strictHostKeyChecking = false,
+                compression = true
+            ))
+            .build()
+
+        val connection = SSHConnectionImpl(optionsConfig)
+
+        val metadata = connection.getMetadata()
+        assertEquals("false", metadata.properties["strictHostKeyChecking"])
+        assertEquals("true", metadata.properties["compression"])
+    }
+
+    @Test
+    @DisplayName("Test disconnect when not connected")
+    fun testDisconnectWhenNotConnected() {
+        val connection = SSHConnectionImpl(config)
+
+        // Should not throw exception
+        assertDoesNotThrow {
+            connection.disconnect()
+        }
+    }
+
+    @Test
+    @DisplayName("Test close is same as disconnect")
+    fun testCloseIsSameAsDisconnect() {
+        val connection = SSHConnectionImpl(config)
+
+        assertDoesNotThrow {
+            connection.close()
+        }
+
+        assertFalse(connection.isConnected())
+    }
+
+    @Test
+    @DisplayName("Test connection with invalid host")
+    fun testConnectionWithInvalidHost() {
+        val invalidConfig = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH)
+            .host("") // Invalid empty host
+            .port(22)
+            .credentials(Credentials("testuser", password = "testpass"))
+            .build()
+
+        val connection = SSHConnectionImpl(invalidConfig)
+        val validation = connection.validateConfig()
+
+        assertTrue(validation.isFailed())
+    }
+
+    @Test
+    @DisplayName("Test connection with no authentication")
+    fun testConnectionWithNoAuthentication() {
+        val noAuthConfig = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH)
+            .host("test.example.com")
+            .port(22)
+            .credentials(Credentials("testuser")) // No password or key
+            .build()
+
+        val connection = SSHConnectionImpl(noAuthConfig)
+        val validation = connection.validateConfig()
+
+        assertTrue(validation.isFailed())
+    }
+
+    @Test
+    @DisplayName("Test metadata display name format")
+    fun testMetadataDisplayNameFormat() {
+        val connection = SSHConnectionImpl(config)
+        val metadata = connection.getMetadata()
+
+        assertEquals("testuser@test.example.com:22", metadata.displayName)
+    }
+
+    @Test
+    @DisplayName("Test metadata properties contain protocol")
+    fun testMetadataPropertiesContainProtocol() {
+        val connection = SSHConnectionImpl(config)
+        val metadata = connection.getMetadata()
+
+        assertEquals("SSH", metadata.properties["protocol"])
+    }
+
+    @Test
+    @DisplayName("Test metadata to map conversion")
+    fun testMetadataToMapConversion() {
+        val connection = SSHConnectionImpl(config)
+        val metadata = connection.getMetadata()
+        val map = metadata.toMap()
+
+        assertEquals("SSH", map["type"])
+        assertEquals("test.example.com", map["host"])
+        assertEquals("22", map["port"])
+        assertEquals("testuser", map["username"])
+    }
+
+    @Test
+    @DisplayName("Test encrypted password decryption")
+    fun testEncryptedPasswordDecryption() {
+        val encryptedConfig = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH)
+            .host("test.example.com")
+            .port(22)
+            .credentials(Credentials("testuser", password = "plaintext"))
+            .build()
+
+        val connection = SSHConnectionImpl(encryptedConfig)
+        assertNotNull(connection)
+
+        // If password is not encrypted, it should be used as-is
+        val creds = encryptedConfig.credentials
+        assertNotNull(creds)
+        assertEquals("plaintext", creds?.getDecryptedPassword())
+    }
+}

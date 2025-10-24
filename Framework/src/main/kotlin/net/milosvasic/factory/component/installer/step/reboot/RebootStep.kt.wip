@@ -1,0 +1,570 @@
+package net.milosvasic.factory.component.installer.step.reboot
+
+import net.milosvasic.factory.component.installer.step.RemoteOperationInstallationStep
+import net.milosvasic.factory.execution.flow.callback.FlowCallback
+import net.milosvasic.factory.execution.flow.implementation.initialization.InitializationFlow
+import net.milosvasic.logger.Log
+import net.milosvasic.factory.remote.Connection
+import net.milosvasic.factory.remote.ssh.SSH
+import java.util.concurrent.TimeUnit
+
+/**
+ * Enhanced installation step that performs a system reboot with comprehensive verification.
+ *
+ * This step handles rebooting both real hardware and virtual machines (QEMU/KVM) with
+ * robust verification to ensure the system comes back online properly.
+ *
+ * Features:
+ * - Graceful vs forced reboot options
+ * - Platform-specific reboot commands (systemd, sysvinit, OpenRC)
+ * - Pre-reboot health check
+ * - Connection dropout detection
+ * - Reconnection with exponential backoff
+ * - Post-reboot health verification (systemd, services, network, disk)
+ * - Configurable timeout and retry logic
+ * - QEMU/KVM-specific optimizations
+ * - Hardware-specific considerations (BIOS delays, disk checks)
+ *
+ * Usage in JSON:
+ * ```json
+ * {
+ *   "type": "reboot",
+ *   "value": "300",
+ *   "graceful": true,
+ *   "verify": true
+ * }
+ * ```
+ *
+ * @param value Timeout in seconds to wait for reboot completion
+ * @param graceful Whether to perform graceful shutdown (default: true)
+ * @param verify Whether to verify system health after reboot (default: true)
+ * @param maxRetries Maximum connection retry attempts (default: 20)
+ * @param healthChecks List of health checks to perform (default: all)
+ *
+ * @author Mail Server Factory Team
+ * @since 3.1.0
+ */
+class RebootStep(
+    private val value: String,
+    private val graceful: Boolean = true,
+    private val verify: Boolean = true,
+    private val maxRetries: Int = 20,
+    private val healthChecks: List<HealthCheck> = HealthCheck.values().toList()
+) : RemoteOperationInstallationStep<InitializationFlow>(value) {
+
+    companion object {
+        private const val DEFAULT_TIMEOUT = 300 // 5 minutes
+        private const val MIN_TIMEOUT = 60 // 1 minute
+        private const val MAX_TIMEOUT = 1800 // 30 minutes
+
+        private const val INITIAL_RETRY_DELAY = 5000L // 5 seconds
+        private const val MAX_RETRY_DELAY = 60000L // 60 seconds
+        private const val BACKOFF_MULTIPLIER = 1.5
+
+        // Platform detection patterns
+        private val SYSTEMD_PATTERN = Regex("systemd", RegexOption.IGNORE_CASE)
+        private val QEMU_PATTERN = Regex("qemu|kvm|virtual", RegexOption.IGNORE_CASE)
+    }
+
+    private var timeout: Int = DEFAULT_TIMEOUT
+    private var platformType: PlatformType = PlatformType.UNKNOWN
+    private var virtualizationType: VirtualizationType = VirtualizationType.PHYSICAL
+    private var bootId: String = ""
+
+    init {
+        // Parse timeout
+        timeout = value.toIntOrNull() ?: DEFAULT_TIMEOUT
+        timeout = timeout.coerceIn(MIN_TIMEOUT, MAX_TIMEOUT)
+
+        Log.i("RebootStep initialized: timeout=${timeout}s, graceful=$graceful, verify=$verify")
+    }
+
+    override fun getFlow() = flow
+
+    override fun process(callback: FlowCallback) {
+        try {
+            Log.i("=".repeat(70))
+            Log.i("REBOOT STEP - Starting system reboot")
+            Log.i("=".repeat(70))
+
+            // Step 1: Detect platform
+            detectPlatform()
+
+            // Step 2: Pre-reboot health check
+            if (verify) {
+                preRebootHealthCheck()
+            }
+
+            // Step 3: Capture boot ID for reboot verification
+            captureBootId()
+
+            // Step 4: Initiate reboot
+            initiateReboot()
+
+            // Step 5: Wait for connection dropout
+            waitForConnectionDropout()
+
+            // Step 6: Wait for system to come back online
+            waitForSystemOnline()
+
+            // Step 7: Verify boot ID changed
+            if (verify) {
+                verifyRebootOccurred()
+            }
+
+            // Step 8: Post-reboot health checks
+            if (verify) {
+                postRebootHealthCheck()
+            }
+
+            Log.i("=".repeat(70))
+            Log.i("REBOOT STEP - Completed successfully")
+            Log.i("=".repeat(70))
+
+            callback.onFinish(success = true)
+
+        } catch (e: Exception) {
+            Log.e("Reboot step failed: ${e.message}", e)
+            callback.onFinish(success = false)
+        }
+    }
+
+    /**
+     * Detects the platform type and virtualization.
+     */
+    private fun detectPlatform() {
+        Log.i("Detecting platform type...")
+
+        val connection = flow?.serverFactory?.remoteServiceConnection as? SSH
+            ?: throw IllegalStateException("SSH connection not available")
+
+        // Detect init system
+        val initSystem = connection.execute("ps -p 1 -o comm=").output.trim()
+        platformType = when {
+            initSystem.contains(SYSTEMD_PATTERN) -> PlatformType.SYSTEMD
+            File("/etc/init.d").exists() -> PlatformType.SYSVINIT
+            else -> PlatformType.SYSTEMD // default assumption
+        }
+
+        // Detect virtualization
+        val virtDetect = connection.execute("systemd-detect-virt || echo 'none'").output.trim()
+        virtualizationType = when {
+            virtDetect.contains(QEMU_PATTERN) -> VirtualizationType.QEMU
+            virtDetect == "none" || virtDetect.isEmpty() -> VirtualizationType.PHYSICAL
+            else -> VirtualizationType.OTHER
+        }
+
+        Log.i("Platform detected: $platformType, Virtualization: $virtualizationType")
+
+        // Adjust timeout based on platform
+        when (virtualizationType) {
+            VirtualizationType.QEMU -> {
+                // QEMU typically reboots faster
+                Log.i("QEMU detected - using optimized reboot timing")
+            }
+            VirtualizationType.PHYSICAL -> {
+                // Physical hardware may have BIOS delays, disk checks
+                Log.i("Physical hardware detected - allowing extra time for BIOS/POST")
+                if (timeout < 120) {
+                    timeout = 120 // minimum 2 minutes for physical hardware
+                }
+            }
+            else -> {
+                Log.i("Unknown virtualization - using default timing")
+            }
+        }
+    }
+
+    /**
+     * Performs pre-reboot health check to ensure system is in good state.
+     */
+    private fun preRebootHealthCheck() {
+        Log.i("Performing pre-reboot health check...")
+
+        val connection = flow?.serverFactory?.remoteServiceConnection as? SSH
+            ?: throw IllegalStateException("SSH connection not available")
+
+        // Check disk space
+        val diskSpace = connection.execute("df -h / | tail -1 | awk '{print $5}' | sed 's/%//'").output.trim()
+        val diskUsage = diskSpace.toIntOrNull() ?: 0
+        if (diskUsage > 95) {
+            Log.w("Disk usage is ${diskUsage}% - reboot may fail due to low disk space")
+        }
+
+        // Check for active package manager locks
+        when (platformType) {
+            PlatformType.SYSTEMD -> {
+                val lockCheck = connection.execute("lsof /var/lib/dpkg/lock-frontend 2>/dev/null || lsof /var/lib/rpm/.rpm.lock 2>/dev/null || true").output
+                if (lockCheck.isNotEmpty()) {
+                    Log.w("Package manager is active - reboot may be unsafe")
+                    Thread.sleep(5000) // wait for package manager
+                }
+            }
+            else -> {}
+        }
+
+        // Check system load
+        val load = connection.execute("cat /proc/loadavg | awk '{print $1}'").output.trim()
+        val loadValue = load.toDoubleOrNull() ?: 0.0
+        if (loadValue > 10.0) {
+            Log.w("System load is high ($loadValue) - waiting before reboot...")
+            Thread.sleep(10000)
+        }
+
+        Log.i("Pre-reboot health check passed")
+    }
+
+    /**
+     * Captures the current boot ID for reboot verification.
+     */
+    private fun captureBootId() {
+        val connection = flow?.serverFactory?.remoteServiceConnection as? SSH
+            ?: return
+
+        try {
+            bootId = connection.execute("cat /proc/sys/kernel/random/boot_id 2>/dev/null || cat /proc/sys/kernel/random/uuid").output.trim()
+            if (bootId.isNotEmpty()) {
+                Log.v("Captured boot ID: $bootId")
+            }
+        } catch (e: Exception) {
+            Log.w("Could not capture boot ID: ${e.message}")
+        }
+    }
+
+    /**
+     * Initiates the system reboot.
+     */
+    private fun initiateReboot() {
+        Log.i("Initiating ${if (graceful) "graceful" else "forced"} reboot...")
+
+        val connection = flow?.serverFactory?.remoteServiceConnection as? SSH
+            ?: throw IllegalStateException("SSH connection not available")
+
+        val rebootCommand = when {
+            graceful -> getGracefulRebootCommand()
+            else -> getForcedRebootCommand()
+        }
+
+        Log.i("Executing reboot command: $rebootCommand")
+
+        // Execute reboot command (don't wait for response as connection will drop)
+        try {
+            connection.execute(rebootCommand, timeout = 5)
+        } catch (e: Exception) {
+            // Expected - connection will drop during reboot
+            Log.v("Reboot command sent (connection dropped as expected)")
+        }
+    }
+
+    /**
+     * Gets the appropriate graceful reboot command for the platform.
+     */
+    private fun getGracefulRebootCommand(): String {
+        return when (platformType) {
+            PlatformType.SYSTEMD -> "systemctl reboot"
+            PlatformType.SYSVINIT -> "/sbin/shutdown -r now"
+            PlatformType.OPENRC -> "openrc-shutdown -r now"
+            else -> "reboot"
+        }
+    }
+
+    /**
+     * Gets the forced reboot command.
+     */
+    private fun getForcedRebootCommand(): String {
+        return "echo b > /proc/sysrq-trigger || reboot -f"
+    }
+
+    /**
+     * Waits for the SSH connection to drop (indicating reboot started).
+     */
+    private fun waitForConnectionDropout() {
+        Log.i("Waiting for connection dropout (reboot initiation)...")
+
+        val connection = flow?.serverFactory?.remoteServiceConnection as? SSH
+            ?: return
+
+        val maxWait = 30 // 30 seconds
+        var elapsed = 0
+
+        while (elapsed < maxWait) {
+            try {
+                connection.execute("echo ping", timeout = 2)
+                Thread.sleep(1000)
+                elapsed++
+            } catch (e: Exception) {
+                // Connection dropped - reboot started
+                Log.i("Connection dropped after ${elapsed}s - reboot initiated")
+                return
+            }
+        }
+
+        Log.w("Connection did not drop within ${maxWait}s - assuming reboot started")
+    }
+
+    /**
+     * Waits for the system to come back online with exponential backoff.
+     */
+    private fun waitForSystemOnline() {
+        Log.i("Waiting for system to come back online (timeout: ${timeout}s)...")
+
+        val connection = flow?.serverFactory?.remoteServiceConnection as? SSH
+            ?: throw IllegalStateException("SSH connection not available")
+
+        val startTime = System.currentTimeMillis()
+        val timeoutMillis = timeout * 1000L
+        var attempt = 0
+        var retryDelay = INITIAL_RETRY_DELAY
+
+        // Wait minimum time before first attempt (BIOS/POST delay)
+        val minWait = when (virtualizationType) {
+            VirtualizationType.QEMU -> 10000L // 10 seconds for QEMU
+            VirtualizationType.PHYSICAL -> 30000L // 30 seconds for physical (BIOS)
+            else -> 20000L
+        }
+
+        Log.i("Waiting ${minWait / 1000}s for boot process to start...")
+        Thread.sleep(minWait)
+
+        while (System.currentTimeMillis() - startTime < timeoutMillis && attempt < maxRetries) {
+            attempt++
+
+            try {
+                Log.v("Reconnection attempt $attempt/$maxRetries (delay: ${retryDelay / 1000}s)...")
+
+                // Try to reconnect
+                connection.disconnect()
+                connection.connect()
+
+                // Try to execute a simple command
+                val result = connection.execute("echo online", timeout = 5)
+                if (result.output.contains("online")) {
+                    val elapsed = (System.currentTimeMillis() - startTime) / 1000
+                    Log.i("System is back online after ${elapsed}s (attempt $attempt)")
+                    return
+                }
+
+            } catch (e: Exception) {
+                // Connection failed - system still rebooting
+                Log.v("Attempt $attempt failed: ${e.message}")
+
+                // Wait with exponential backoff
+                Thread.sleep(retryDelay)
+
+                // Increase delay for next attempt
+                retryDelay = (retryDelay * BACKOFF_MULTIPLIER).toLong()
+                    .coerceAtMost(MAX_RETRY_DELAY)
+            }
+        }
+
+        throw TimeoutException("System did not come back online within ${timeout}s (${attempt} attempts)")
+    }
+
+    /**
+     * Verifies that a reboot actually occurred by checking boot ID.
+     */
+    private fun verifyRebootOccurred() {
+        if (bootId.isEmpty()) {
+            Log.w("Cannot verify reboot - boot ID was not captured")
+            return
+        }
+
+        Log.i("Verifying reboot occurred...")
+
+        val connection = flow?.serverFactory?.remoteServiceConnection as? SSH
+            ?: return
+
+        try {
+            val newBootId = connection.execute("cat /proc/sys/kernel/random/boot_id 2>/dev/null || cat /proc/sys/kernel/random/uuid").output.trim()
+
+            if (newBootId == bootId) {
+                throw VerificationException("Reboot verification failed - boot ID unchanged. System may not have rebooted.")
+            }
+
+            Log.i("Reboot verified - boot ID changed")
+            Log.v("Old boot ID: $bootId")
+            Log.v("New boot ID: $newBootId")
+
+        } catch (e: Exception) {
+            if (e is VerificationException) throw e
+            Log.w("Could not verify boot ID: ${e.message}")
+        }
+    }
+
+    /**
+     * Performs comprehensive post-reboot health checks.
+     */
+    private fun postRebootHealthCheck() {
+        Log.i("Performing post-reboot health checks...")
+
+        val connection = flow?.serverFactory?.remoteServiceConnection as? SSH
+            ?: throw IllegalStateException("SSH connection not available")
+
+        for (check in healthChecks) {
+            performHealthCheck(check, connection)
+        }
+
+        Log.i("All health checks passed")
+    }
+
+    /**
+     * Performs a specific health check.
+     */
+    private fun performHealthCheck(check: HealthCheck, connection: SSH) {
+        Log.v("Health check: ${check.name}")
+
+        try {
+            when (check) {
+                HealthCheck.UPTIME -> {
+                    // Verify system uptime is reasonable (< 10 minutes for fresh boot)
+                    val uptime = connection.execute("cat /proc/uptime | awk '{print $1}'").output.trim()
+                    val uptimeSeconds = uptime.toDoubleOrNull() ?: 0.0
+                    if (uptimeSeconds > 600) {
+                        Log.w("System uptime is ${uptimeSeconds}s - may not have rebooted")
+                    } else {
+                        Log.v("Uptime: ${uptimeSeconds.toInt()}s ✓")
+                    }
+                }
+
+                HealthCheck.SYSTEMD -> {
+                    if (platformType == PlatformType.SYSTEMD) {
+                        val systemdState = connection.execute("systemctl is-system-running || echo degraded").output.trim()
+                        when (systemdState) {
+                            "running" -> Log.v("Systemd: running ✓")
+                            "degraded" -> Log.w("Systemd: degraded (some services failed)")
+                            else -> Log.w("Systemd state: $systemdState")
+                        }
+
+                        // Check for failed services
+                        val failed = connection.execute("systemctl list-units --failed --no-pager --no-legend | wc -l").output.trim()
+                        val failedCount = failed.toIntOrNull() ?: 0
+                        if (failedCount > 0) {
+                            Log.w("$failedCount failed services after reboot")
+                            val failedServices = connection.execute("systemctl list-units --failed --no-pager --no-legend").output
+                            Log.v("Failed services:\n$failedServices")
+                        }
+                    }
+                }
+
+                HealthCheck.NETWORK -> {
+                    // Check network interfaces
+                    val interfaces = connection.execute("ip link show up | grep -c 'state UP' || echo 0").output.trim()
+                    val interfaceCount = interfaces.toIntOrNull() ?: 0
+                    if (interfaceCount == 0) {
+                        throw VerificationException("No network interfaces are up")
+                    }
+                    Log.v("Network interfaces up: $interfaceCount ✓")
+
+                    // Check DNS resolution
+                    try {
+                        connection.execute("nslookup google.com > /dev/null 2>&1 || host google.com > /dev/null 2>&1", timeout = 10)
+                        Log.v("DNS resolution: working ✓")
+                    } catch (e: Exception) {
+                        Log.w("DNS resolution check failed - may affect operations")
+                    }
+                }
+
+                HealthCheck.DISK -> {
+                    // Check filesystems mounted
+                    val mounts = connection.execute("mount | grep -c '^/' || echo 0").output.trim()
+                    val mountCount = mounts.toIntOrNull() ?: 0
+                    if (mountCount == 0) {
+                        throw VerificationException("No filesystems mounted")
+                    }
+                    Log.v("Filesystems mounted: $mountCount ✓")
+
+                    // Check for read-only mounts
+                    val roMounts = connection.execute("mount | grep -c '\\bro\\b' || echo 0").output.trim()
+                    val roCount = roMounts.toIntOrNull() ?: 0
+                    if (roCount > 0) {
+                        Log.w("Warning: $roCount read-only filesystems detected")
+                    }
+                }
+
+                HealthCheck.TIME -> {
+                    // Check system time is synchronized
+                    if (platformType == PlatformType.SYSTEMD) {
+                        try {
+                            val timeSync = connection.execute("timedatectl status | grep 'synchronized: yes' || echo 'no'").output
+                            if (timeSync.contains("yes")) {
+                                Log.v("Time synchronization: enabled ✓")
+                            } else {
+                                Log.w("Time synchronization: disabled or pending")
+                            }
+                        } catch (e: Exception) {
+                            Log.v("Could not check time sync: ${e.message}")
+                        }
+                    }
+                }
+
+                HealthCheck.LOAD -> {
+                    // Check system load is reasonable
+                    val load = connection.execute("cat /proc/loadavg | awk '{print $1}'").output.trim()
+                    val loadValue = load.toDoubleOrNull() ?: 0.0
+                    if (loadValue > 5.0) {
+                        Log.w("System load is high: $loadValue")
+                    } else {
+                        Log.v("System load: $loadValue ✓")
+                    }
+                }
+
+                HealthCheck.MEMORY -> {
+                    // Check available memory
+                    val memAvail = connection.execute("grep MemAvailable /proc/meminfo | awk '{print $2}'").output.trim()
+                    val memAvailKB = memAvail.toLongOrNull() ?: 0
+                    val memAvailMB = memAvailKB / 1024
+                    if (memAvailMB < 100) {
+                        Log.w("Low available memory: ${memAvailMB}MB")
+                    } else {
+                        Log.v("Available memory: ${memAvailMB}MB ✓")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            if (e is VerificationException) throw e
+            Log.w("Health check ${check.name} failed: ${e.message}")
+        }
+    }
+}
+
+/**
+ * Platform types (init systems).
+ */
+enum class PlatformType {
+    SYSTEMD,
+    SYSVINIT,
+    OPENRC,
+    UNKNOWN
+}
+
+/**
+ * Virtualization types.
+ */
+enum class VirtualizationType {
+    PHYSICAL,
+    QEMU,
+    OTHER
+}
+
+/**
+ * Health checks to perform after reboot.
+ */
+enum class HealthCheck {
+    UPTIME,      // Verify system rebooted
+    SYSTEMD,     // Check systemd state and failed services
+    NETWORK,     // Verify network connectivity
+    DISK,        // Check filesystem mounts
+    TIME,        // Check time synchronization
+    LOAD,        // Check system load
+    MEMORY       // Check available memory
+}
+
+/**
+ * Exception thrown when reboot verification fails.
+ */
+class VerificationException(message: String) : Exception(message)
+
+/**
+ * Exception thrown when reboot times out.
+ */
+class TimeoutException(message: String) : Exception(message)

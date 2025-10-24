@@ -1,0 +1,283 @@
+package net.milosvasic.factory.connection
+
+import net.milosvasic.factory.connection.impl.AWSSSMConnectionImpl
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+
+/**
+ * Unit tests for AWSSSMConnectionImpl.
+ *
+ * @author Mail Server Factory Team
+ * @since 3.1.0
+ */
+class AWSSSMConnectionTest {
+
+    private lateinit var config: ConnectionConfig
+
+    @BeforeEach
+    fun setUp() {
+        config = ConnectionConfigBuilder()
+            .type(ConnectionType.AWS_SSM)
+            .host("i-1234567890abcdef0")
+            .port(0)
+            .cloudConfig(CloudConfig(
+                provider = CloudProvider.AWS,
+                region = "us-east-1",
+                instanceId = "i-1234567890abcdef0",
+                profile = "mail-production"
+            ))
+            .build()
+    }
+
+    @Test
+    @DisplayName("Test AWS SSM connection creation")
+    fun testAWSSSMConnectionCreation() {
+        val connection = AWSSSMConnectionImpl(config)
+        assertNotNull(connection)
+    }
+
+    @Test
+    @DisplayName("Test connection metadata")
+    fun testConnectionMetadata() {
+        val connection = AWSSSMConnectionImpl(config)
+        val metadata = connection.getMetadata()
+
+        assertEquals(ConnectionType.AWS_SSM, metadata.type)
+        assertEquals("i-1234567890abcdef0", metadata.host)
+        assertEquals(0, metadata.port)
+    }
+
+    @Test
+    @DisplayName("Test metadata shows AWS SSM auth method")
+    fun testMetadataShowsAWSSSMAuthMethod() {
+        val connection = AWSSSMConnectionImpl(config)
+        val metadata = connection.getMetadata()
+
+        assertEquals("AWS SSM", metadata.properties["authMethod"])
+    }
+
+    @Test
+    @DisplayName("Test metadata contains AWS region")
+    fun testMetadataContainsAWSRegion() {
+        val connection = AWSSSMConnectionImpl(config)
+        val metadata = connection.getMetadata()
+
+        assertEquals("us-east-1", metadata.properties["region"])
+    }
+
+    @Test
+    @DisplayName("Test metadata contains instance ID")
+    fun testMetadataContainsInstanceId() {
+        val connection = AWSSSMConnectionImpl(config)
+        val metadata = connection.getMetadata()
+
+        assertEquals("i-1234567890abcdef0", metadata.properties["instanceId"])
+    }
+
+    @Test
+    @DisplayName("Test metadata contains AWS profile")
+    fun testMetadataContainsAWSProfile() {
+        val connection = AWSSSMConnectionImpl(config)
+        val metadata = connection.getMetadata()
+
+        assertEquals("mail-production", metadata.properties["profile"])
+    }
+
+    @Test
+    @DisplayName("Test metadata contains cloud provider")
+    fun testMetadataContainsCloudProvider() {
+        val connection = AWSSSMConnectionImpl(config)
+        val metadata = connection.getMetadata()
+
+        assertEquals("AWS", metadata.properties["cloudProvider"])
+    }
+
+    @Test
+    @DisplayName("Test isConnected returns false before connection")
+    fun testIsConnectedBeforeConnection() {
+        val connection = AWSSSMConnectionImpl(config)
+        assertFalse(connection.isConnected())
+    }
+
+    @Test
+    @DisplayName("Test execute fails when not connected")
+    fun testExecuteFailsWhenNotConnected() {
+        val connection = AWSSSMConnectionImpl(config)
+        val result = connection.execute("systemctl status postfix")
+
+        assertFalse(result.success)
+        assertTrue(result.errorOutput.contains("Not connected"))
+    }
+
+    @Test
+    @DisplayName("Test upload fails when not connected")
+    fun testUploadFailsWhenNotConnected() {
+        val connection = AWSSSMConnectionImpl(config)
+        val result = connection.uploadFile("/tmp/test.txt", "/tmp/remote.txt")
+
+        assertFalse(result.success)
+    }
+
+    @Test
+    @DisplayName("Test download fails when not connected")
+    fun testDownloadFailsWhenNotConnected() {
+        val connection = AWSSSMConnectionImpl(config)
+        val result = connection.downloadFile("/tmp/remote.txt", "/tmp/local.txt")
+
+        assertFalse(result.success)
+    }
+
+    @Test
+    @DisplayName("Test health check when not connected")
+    fun testHealthCheckWhenNotConnected() {
+        val connection = AWSSSMConnectionImpl(config)
+        val health = connection.getHealth()
+
+        assertFalse(health.isHealthy)
+    }
+
+    @Test
+    @DisplayName("Test config validation with valid AWS SSM config")
+    fun testConfigValidationWithValidAWSSSMConfig() {
+        val connection = AWSSSMConnectionImpl(config)
+        val result = connection.validateConfig()
+
+        assertTrue(result.isValid())
+    }
+
+    @Test
+    @DisplayName("Test config validation fails without instance ID")
+    fun testConfigValidationFailsWithoutInstanceId() {
+        val invalidConfig = ConnectionConfigBuilder()
+            .type(ConnectionType.AWS_SSM)
+            .host("i-1234567890abcdef0")
+            .port(0)
+            .cloudConfig(CloudConfig(
+                provider = CloudProvider.AWS,
+                region = "us-east-1",
+                profile = "mail-production"
+                // Missing instanceId
+            ))
+            .build()
+
+        val connection = AWSSSMConnectionImpl(invalidConfig)
+        val result = connection.validateConfig()
+
+        assertTrue(result.isFailed())
+    }
+
+    @Test
+    @DisplayName("Test config validation fails without region")
+    fun testConfigValidationFailsWithoutRegion() {
+        val invalidConfig = ConnectionConfigBuilder()
+            .type(ConnectionType.AWS_SSM)
+            .host("i-1234567890abcdef0")
+            .port(0)
+            .cloudConfig(CloudConfig(
+                provider = CloudProvider.AWS,
+                instanceId = "i-1234567890abcdef0",
+                profile = "mail-production"
+                // Missing region
+            ))
+            .build()
+
+        val connection = AWSSSMConnectionImpl(invalidConfig)
+        val result = connection.validateConfig()
+
+        assertTrue(result.isFailed())
+    }
+
+    @Test
+    @DisplayName("Test config validation with different AWS regions")
+    fun testConfigValidationWithDifferentAWSRegions() {
+        val regions = listOf("us-east-1", "us-west-2", "eu-west-1", "ap-southeast-1")
+
+        regions.forEach { region ->
+            val testConfig = ConnectionConfigBuilder()
+                .type(ConnectionType.AWS_SSM)
+                .host("i-1234567890abcdef0")
+                .port(0)
+                .cloudConfig(CloudConfig(
+                    provider = CloudProvider.AWS,
+                    region = region,
+                    instanceId = "i-1234567890abcdef0",
+                    profile = "mail-production"
+                ))
+                .build()
+
+            val connection = AWSSSMConnectionImpl(testConfig)
+            val result = connection.validateConfig()
+            assertTrue(result.isValid(), "Region $region should be valid")
+        }
+    }
+
+    @Test
+    @DisplayName("Test disconnect when not connected")
+    fun testDisconnectWhenNotConnected() {
+        val connection = AWSSSMConnectionImpl(config)
+
+        assertDoesNotThrow {
+            connection.disconnect()
+        }
+    }
+
+    @Test
+    @DisplayName("Test close releases resources")
+    fun testCloseReleasesResources() {
+        val connection = AWSSSMConnectionImpl(config)
+
+        assertDoesNotThrow {
+            connection.close()
+        }
+
+        assertFalse(connection.isConnected())
+    }
+
+    @Test
+    @DisplayName("Test metadata display name")
+    fun testMetadataDisplayName() {
+        val connection = AWSSSMConnectionImpl(config)
+        val metadata = connection.getMetadata()
+
+        assertEquals("i-1234567890abcdef0 (us-east-1)", metadata.displayName)
+    }
+
+    @Test
+    @DisplayName("Test metadata properties contain protocol")
+    fun testMetadataPropertiesContainProtocol() {
+        val connection = AWSSSMConnectionImpl(config)
+        val metadata = connection.getMetadata()
+
+        assertEquals("AWS SSM", metadata.properties["protocol"])
+    }
+
+    @Test
+    @DisplayName("Test metadata to map conversion")
+    fun testMetadataToMapConversion() {
+        val connection = AWSSSMConnectionImpl(config)
+        val metadata = connection.getMetadata()
+        val map = metadata.toMap()
+
+        assertEquals("AWS_SSM", map["type"])
+        assertEquals("i-1234567890abcdef0", map["host"])
+        assertEquals("0", map["port"])
+        assertEquals("us-east-1", map["region"])
+    }
+
+    @Test
+    @DisplayName("Test AWS SSM info extraction from metadata")
+    fun testAWSSSMInfoExtractionFromMetadata() {
+        val connection = AWSSSMConnectionImpl(config)
+        val metadata = connection.getMetadata()
+
+        // Should contain AWS SSM-related properties
+        assertTrue(metadata.properties.containsKey("region"))
+        assertTrue(metadata.properties.containsKey("instanceId"))
+        assertTrue(metadata.properties.containsKey("profile"))
+        assertTrue(metadata.properties.containsKey("cloudProvider"))
+        assertTrue(metadata.properties.containsKey("authMethod"))
+        assertTrue(metadata.properties.containsKey("protocol"))
+    }
+}
