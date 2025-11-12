@@ -23,10 +23,7 @@ import org.junit.jupiter.api.Test
 open class SkipConditionStepFlowTest : BaseTest() {
 
     @Test
-    @Disabled("Test isolation issue: values swap when run with ConditionStepFlowTest. " +
-              "When run alone: gets 3, when run together: gets 2 but expects 3. " +
-              "Requires investigation of shared state in InstallationStepFlow. " +
-              "TODO: Fix test isolation - tests share state causing non-deterministic behavior")
+    @DisplayName("Test skip condition step flow")
     fun testConditionStepFlow() {
         initLogging()
         log.i("${name()} step flow test started")

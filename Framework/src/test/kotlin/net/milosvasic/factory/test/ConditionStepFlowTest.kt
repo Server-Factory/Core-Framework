@@ -3,9 +3,7 @@ package net.milosvasic.factory.test
 import net.milosvasic.factory.component.installer.step.InstallationStepType
 import org.junit.jupiter.api.Disabled
 
-@Disabled("Test isolation issue: inherits from SkipConditionStepFlowTest which is disabled. " +
-          "Values swap when run together - expects 3, gets 2. " +
-          "TODO: Fix test isolation in parent class first, then re-enable")
+@DisplayName("Test condition step flow")
 class ConditionStepFlowTest : SkipConditionStepFlowTest() {
 
     override fun name() = "Condition"

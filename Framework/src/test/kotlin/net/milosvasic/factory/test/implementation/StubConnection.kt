@@ -23,16 +23,7 @@ class MockRemote : Remote {
         account = "test-user"
     )
     
-    override fun getHost(preferIpAddress: Boolean): String = "test-host"
-    override fun getAccountName(): String = "test-user"
-    override fun getRemoteOS(): OperatingSystem {
-        return OperatingSystem(
-            name = "Linux",
-            platform = Platform.LINUX,
-            architecture = Architecture.X86_64,
-            hostname = "test-host"
-        )
-    }
+    // Only override existing methods in Remote class
 }
 
 class StubConnection : Connection, Notifying<OperationResult> {
