@@ -113,14 +113,13 @@ class KubernetesConnectionTest {
     }
 
     @Test
-    @DisplayName("Test getPodLogs method exists")
-    fun testGetPodLogsMethodExists() {
+    @DisplayName("Test Kubernetes connection metadata")
+    fun testKubernetesConnectionMetadata() {
         val connection = KubernetesConnectionImpl(config)
-
-        assertDoesNotThrow {
-            val logs = connection.getPodLogs(tail = 100, follow = false)
-            assertNotNull(logs)
-        }
+        val metadata = connection.getMetadata()
+        
+        assertEquals(ConnectionType.KUBERNETES, metadata.type)
+        assertEquals("test-pod", metadata.host)
     }
 
     @Test

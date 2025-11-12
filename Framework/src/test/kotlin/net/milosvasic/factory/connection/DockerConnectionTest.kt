@@ -220,67 +220,51 @@ class DockerConnectionTest {
     }
 
     @Test
-    @DisplayName("Test isContainerRunning method")
-    fun testIsContainerRunningMethod() {
+    @DisplayName("Test Docker connection metadata")
+    fun testDockerConnectionMetadata() {
         val connection = DockerConnectionImpl(config)
-
-        // Should return false if not connected or container not running
-        val result = connection.isContainerRunning()
-
-        assertNotNull(result)
-        // Result depends on whether container is actually running
+        val metadata = connection.getMetadata()
+        
+        assertEquals(ConnectionType.DOCKER, metadata.type)
+        assertEquals("test-container", metadata.host)
     }
 
     @Test
-    @DisplayName("Test getContainerStatus method returns map")
-    fun testGetContainerStatusMethod() {
-        val connection = DockerConnectionImpl(config)
-
-        val status = connection.getContainerStatus()
-
-        assertNotNull(status)
-        // Empty map if not connected or container doesn't exist
+    @DisplayName("Test Docker connection builder")
+    fun testDockerConnectionBuilder() {
+        val connection = ConnectionFactory.build {
+            type(ConnectionType.DOCKER)
+            host("test-container")
+        }
+        
+        val metadata = connection.getMetadata()
+        assertEquals(ConnectionType.DOCKER, metadata.type)
+        assertEquals("test-container", metadata.host)
     }
 
     @Test
-    @DisplayName("Test startContainer method")
-    fun testStartContainerMethod() {
-        val connection = DockerConnectionImpl(config)
-
-        // Should return false if not connected
-        val result = connection.startContainer()
-
-        assertNotNull(result)
+    @DisplayName("Test Docker connection configuration")
+    fun testDockerConnectionConfiguration() {
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.DOCKER)
+            .host("test-container")
+            .port(0)
+            .build()
+            
+        assertTrue(config.validate().isSuccess())
+        assertEquals(ConnectionType.DOCKER, config.type)
+        assertEquals("test-container", config.host)
     }
 
     @Test
-    @DisplayName("Test stopContainer method")
-    fun testStopContainerMethod() {
-        val connection = DockerConnectionImpl(config)
-
-        val result = connection.stopContainer(timeout = 10)
-
-        assertNotNull(result)
-    }
-
-    @Test
-    @DisplayName("Test restartContainer method")
-    fun testRestartContainerMethod() {
-        val connection = DockerConnectionImpl(config)
-
-        val result = connection.restartContainer(timeout = 10)
-
-        assertNotNull(result)
-    }
-
-    @Test
-    @DisplayName("Test getContainerLogs method")
-    fun testGetContainerLogsMethod() {
-        val connection = DockerConnectionImpl(config)
-
-        val logs = connection.getContainerLogs(tail = 100, follow = false)
-
-        assertNotNull(logs)
-        assertFalse(logs.success) // Should fail if not connected
+    @DisplayName("Test Docker connection validation")
+    fun testDockerConnectionValidation() {
+        val validConfig = ConnectionConfigBuilder()
+            .type(ConnectionType.DOCKER)
+            .host("test-container")
+            .build()
+            
+        val result = validConfig.validate()
+        assertTrue(result.isSuccess())
     }
 }

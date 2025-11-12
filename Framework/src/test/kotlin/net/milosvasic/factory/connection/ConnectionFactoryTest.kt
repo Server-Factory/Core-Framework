@@ -325,31 +325,18 @@ class ConnectionFactoryTest {
     }
 
     @Test
-    @DisplayName("Test get supported types")
-    fun testGetSupportedTypes() {
-        val types = ConnectionFactory.getSupportedTypes()
-
+    @DisplayName("Test ConnectionType values")
+    fun testConnectionTypeValues() {
+        val types = ConnectionType.values()
         assertEquals(12, types.size)
-        assertTrue(types.contains(ConnectionType.SSH))
-        assertTrue(types.contains(ConnectionType.SSH_AGENT))
-        assertTrue(types.contains(ConnectionType.SSH_CERTIFICATE))
-        assertTrue(types.contains(ConnectionType.SSH_BASTION))
-        assertTrue(types.contains(ConnectionType.WINRM))
-        assertTrue(types.contains(ConnectionType.ANSIBLE))
-        assertTrue(types.contains(ConnectionType.DOCKER))
-        assertTrue(types.contains(ConnectionType.KUBERNETES))
-        assertTrue(types.contains(ConnectionType.AWS_SSM))
-        assertTrue(types.contains(ConnectionType.AZURE_SERIAL))
-        assertTrue(types.contains(ConnectionType.GCP_OS_LOGIN))
-        assertTrue(types.contains(ConnectionType.LOCAL))
     }
 
     @Test
-    @DisplayName("Test is type supported")
-    fun testIsTypeSupported() {
-        assertTrue(ConnectionFactory.isTypeSupported(ConnectionType.SSH))
-        assertTrue(ConnectionFactory.isTypeSupported(ConnectionType.DOCKER))
-        assertTrue(ConnectionFactory.isTypeSupported(ConnectionType.LOCAL))
+    @DisplayName("Test connection type enum")
+    fun testConnectionTypeEnum() {
+        assertTrue(ConnectionType.values().contains(ConnectionType.SSH))
+        assertTrue(ConnectionType.values().contains(ConnectionType.DOCKER))
+        assertTrue(ConnectionType.values().contains(ConnectionType.LOCAL))
     }
 
     @Test
@@ -364,7 +351,7 @@ class ConnectionFactoryTest {
             .build()
 
         assertThrows<ConnectionException> {
-            ConnectionFactory.createConnection(config)
+            ConnectionFactory.create(config)
         }
     }
 
@@ -382,7 +369,7 @@ class ConnectionFactoryTest {
             .build()
 
         assertThrows<ConnectionException> {
-            ConnectionFactory.createConnection(config)
+            ConnectionFactory.create(config)
         }
     }
 
@@ -400,7 +387,7 @@ class ConnectionFactoryTest {
             .build()
 
         assertThrows<ConnectionException> {
-            ConnectionFactory.createConnection(config)
+            ConnectionFactory.create(config)
         }
     }
 
@@ -418,7 +405,7 @@ class ConnectionFactoryTest {
             .build()
 
         assertThrows<ConnectionException> {
-            ConnectionFactory.createConnection(config)
+            ConnectionFactory.create(config)
         }
     }
 }

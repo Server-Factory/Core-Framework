@@ -6,12 +6,34 @@ import net.milosvasic.factory.operation.OperationResult
 import net.milosvasic.factory.operation.OperationResultListener
 import net.milosvasic.factory.operation.command.CommandConfiguration
 import net.milosvasic.factory.platform.OperatingSystem
+import net.milosvasic.factory.platform.Platform
+import net.milosvasic.factory.platform.Architecture
 import net.milosvasic.factory.remote.Connection
 import net.milosvasic.factory.remote.Remote
 import net.milosvasic.factory.remote.ssh.SSH
 import net.milosvasic.factory.terminal.Terminal
 import net.milosvasic.factory.terminal.TerminalCommand
 import java.util.concurrent.ConcurrentLinkedQueue
+
+class MockRemote : Remote {
+    constructor() : super(
+        host = "test-host",
+        hostIp = "127.0.0.1", 
+        port = 22,
+        account = "test-user"
+    )
+    
+    override fun getHost(preferIpAddress: Boolean): String = "test-host"
+    override fun getAccountName(): String = "test-user"
+    override fun getRemoteOS(): OperatingSystem {
+        return OperatingSystem(
+            name = "Linux",
+            platform = Platform.LINUX,
+            architecture = Architecture.X86_64,
+            hostname = "test-host"
+        )
+    }
+}
 
 class StubConnection : Connection, Notifying<OperationResult> {
 
@@ -62,10 +84,15 @@ class StubConnection : Connection, Notifying<OperationResult> {
     }
 
     override fun getRemote(): Remote {
-        return SSH().getRemote()
+        return MockRemote()
     }
 
     override fun getRemoteOS(): OperatingSystem {
-        return OperatingSystem.LINUX
+        return OperatingSystem(
+            name = "Linux",
+            platform = Platform.LINUX,
+            architecture = Architecture.X86_64,
+            hostname = "test-host"
+        )
     }
 }

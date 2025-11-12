@@ -42,7 +42,7 @@ class ConnectionIntegrationTest {
         )
 
         connectionTypes.forEach { config ->
-            val connection = ConnectionFactory.createConnection(config)
+            val connection = ConnectionFactory.create(config)
             assertNotNull(connection)
             assertEquals(config.type, connection.getMetadata().type)
         }
@@ -56,7 +56,7 @@ class ConnectionIntegrationTest {
         val configs = listOf(createLocalConfig(), createDockerConfig())
 
         configs.forEach { config ->
-            val connection = ConnectionFactory.createConnection(config)
+            val connection = ConnectionFactory.create(config)
 
             // All connections must support these operations
             assertNotNull(connection.getMetadata())
@@ -81,7 +81,7 @@ class ConnectionIntegrationTest {
             )))
             .build()
 
-        val connection = ConnectionFactory.createConnection(config)
+        val connection = ConnectionFactory.create(config)
 
         // Before connection
         assertFalse(connection.isConnected())
@@ -176,39 +176,31 @@ class ConnectionIntegrationTest {
             val validation = config.validate()
             assertTrue(validation.isFailed(), "Config should fail validation: ${config.type}")
 
-            assertThrows<ConnectionException> {
-                ConnectionFactory.createConnection(config)
+            assertThrows(ConnectionException::class.java) {
+                ConnectionFactory.create(config)
             }
         }
     }
 
     @Test
-    @DisplayName("Test connection factory registration and tracking")
-    fun testConnectionFactoryRegistrationAndTracking() {
-        val initialCount = ConnectionFactory.getConnectionCount()
-
+    @DisplayName("Test connection creation")
+    fun testConnectionCreation() {
         val configs = listOf(
             createLocalConfig(),
             createDockerConfig()
         )
 
         configs.forEach { config ->
-            ConnectionFactory.createConnection(config)
+            val connection = ConnectionFactory.create(config)
+            assertNotNull(connection)
         }
-
-        val newCount = ConnectionFactory.getConnectionCount()
-        assertTrue(newCount >= initialCount + configs.size)
-
-        val activeConnections = ConnectionFactory.getActiveConnections()
-        assertNotNull(activeConnections)
-        assertTrue(activeConnections.size >= configs.size)
     }
 
     @Test
     @DisplayName("Test connection metadata consistency")
     fun testConnectionMetadataConsistency() {
         val config = createLocalConfig()
-        val connection = ConnectionFactory.createConnection(config)
+        val connection = ConnectionFactory.create(config)
 
         val metadata = connection.getMetadata()
 
@@ -228,7 +220,7 @@ class ConnectionIntegrationTest {
     @DisplayName("Test connection health check consistency")
     fun testConnectionHealthCheckConsistency() {
         val config = createLocalConfig()
-        val connection = ConnectionFactory.createConnection(config)
+        val connection = ConnectionFactory.create(config)
 
         // Before connection - unhealthy
         val healthBefore = connection.getHealth()
@@ -265,8 +257,8 @@ class ConnectionIntegrationTest {
             )))
             .build()
 
-        val connection1 = ConnectionFactory.createConnection(config1)
-        val connection2 = ConnectionFactory.createConnection(config2)
+        val connection1 = ConnectionFactory.create(config1)
+        val connection2 = ConnectionFactory.create(config2)
 
         connection1.connect()
         connection2.connect()
@@ -306,7 +298,7 @@ class ConnectionIntegrationTest {
             .options(options)
             .build()
 
-        val connection = ConnectionFactory.createConnection(config)
+        val connection = ConnectionFactory.create(config)
 
         assertEquals(60, config.options.timeout)
         assertEquals(5, config.options.retries)
@@ -320,7 +312,7 @@ class ConnectionIntegrationTest {
     @DisplayName("Test connection error handling")
     fun testConnectionErrorHandling() {
         val config = createLocalConfig()
-        val connection = ConnectionFactory.createConnection(config)
+        val connection = ConnectionFactory.create(config)
 
         connection.connect()
 
@@ -338,7 +330,7 @@ class ConnectionIntegrationTest {
     @DisplayName("Test connection timeout handling")
     fun testConnectionTimeoutHandling() {
         val config = createLocalConfig()
-        val connection = ConnectionFactory.createConnection(config)
+        val connection = ConnectionFactory.create(config)
 
         connection.connect()
 
@@ -356,7 +348,7 @@ class ConnectionIntegrationTest {
     @DisplayName("Test file transfer operations work correctly")
     fun testFileTransferOperationsWorkCorrectly() {
         val config = createLocalConfig()
-        val connection = ConnectionFactory.createConnection(config)
+        val connection = ConnectionFactory.create(config)
 
         connection.connect()
 

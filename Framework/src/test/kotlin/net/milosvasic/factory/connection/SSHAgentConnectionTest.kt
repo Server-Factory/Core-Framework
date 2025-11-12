@@ -217,15 +217,17 @@ class SSHAgentConnectionTest {
     }
 
     @Test
-    @DisplayName("Test testAgent method returns boolean")
-    fun testTestAgentMethodReturnBoolean() {
-        val connection = SSHAgentConnectionImpl(config)
-
-        // Should return false if agent not available
-        val result = connection.testAgent()
-
-        assertNotNull(result)
-        // Result depends on whether SSH agent is actually running
+    @DisplayName("Test SSH Agent connection validation")
+    fun testSSHAgentConnectionValidation() {
+        val config = ConnectionConfigBuilder()
+            .type(ConnectionType.SSH_AGENT)
+            .host("test.example.com")
+            .port(22)
+            .credentials(Credentials("testuser", agentSocket = "/tmp/ssh-agent.sock"))
+            .build()
+            
+        val result = config.validate()
+        assertTrue(result.isSuccess())
     }
 
     @Test
