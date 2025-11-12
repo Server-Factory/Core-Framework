@@ -1,6 +1,7 @@
 package net.milosvasic.factory.connection.impl
 
 import net.milosvasic.factory.connection.*
+import net.milosvasic.factory.validation.ValidationResult
 import net.milosvasic.logger.Log
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -39,17 +40,34 @@ class SSHBastionConnectionImpl(config: ConnectionConfig) : BaseConnection(config
     private val proxyCommand: String?
 
     init {
-        bastionHost = config.options.getProperty("bastionHost").takeIf { it.isNotEmpty() }
-            ?: throw IllegalArgumentException("Bastion host is required for SSH bastion connection")
+        // Get bastion configuration from bastionConfig field first, then fall back to options
+        // Use empty string as placeholder if not provided - validation happens later
+        bastionHost = config.bastionConfig?.host?.takeIf { it.isNotEmpty() }
+            ?: config.options.getProperty("bastionHost").takeIf { it.isNotEmpty() }
+            ?: ""
 
-        bastionPort = config.options.getProperty("bastionPort", "22").toIntOrNull() ?: 22
-        bastionUser = config.options.getProperty("bastionUser", "root")
-        bastionKeyPath = config.options.getProperty("bastionKeyPath").takeIf { it.isNotEmpty() }
+        bastionPort = config.bastionConfig?.port
+            ?: config.options.getProperty("bastionPort", "22").toIntOrNull() ?: 22
+
+        bastionUser = config.bastionConfig?.credentials?.username
+            ?: config.options.getProperty("bastionUser", "root")
+
+        bastionKeyPath = config.bastionConfig?.credentials?.keyPath
+            ?: config.options.getProperty("bastionKeyPath").takeIf { it.isNotEmpty() }
+
         proxyCommand = config.options.getProperty("proxyCommand").takeIf { it.isNotEmpty() }
+
+        // Note: Validation happens during connection or via validateConfig(), not in constructor
+        // This allows for testing with invalid configurations and proper error handling
     }
 
     override fun doConnect(): ConnectionResult {
         return try {
+            // Validate bastion host is provided
+            if (bastionHost.isEmpty()) {
+                return ConnectionResult.Failure("Bastion host is required for SSH bastion connection")
+            }
+
             // Test SSH connection through bastion
             val testCommand = buildSSHCommand("echo 'connected'")
             val process = ProcessBuilder(testCommand)
@@ -331,14 +349,43 @@ class SSHBastionConnectionImpl(config: ConnectionConfig) : BaseConnection(config
         return scpCommand
     }
 
+    override fun getMetadata(): ConnectionMetadata {
+        val baseMetadata = super.getMetadata()
+        // Customize display name to include bastion host
+        val customDisplayName = if (bastionHost.isNotEmpty()) {
+            "$username@${config.host}:${config.port} (via $bastionHost)"
+        } else {
+            baseMetadata.displayName
+        }
+        return baseMetadata.copy(displayName = customDisplayName)
+    }
+
+    override fun validateConfig(): ValidationResult {
+        // First, check base config validation
+        val baseResult = super.validateConfig()
+        if (baseResult.isFailed()) {
+            return baseResult
+        }
+
+        // Validate bastion host is provided
+        if (bastionHost.isEmpty()) {
+            return ValidationResult.Invalid("Bastion host is required for SSH bastion connection")
+        }
+
+        return ValidationResult.Valid
+    }
+
     override fun buildMetadataProperties(): Map<String, String> {
         return super.buildMetadataProperties() + mapOf(
-            "protocol" to "SSH-Bastion",
+            "protocol" to "SSH",
+            "authMethod" to "SSH Bastion",
             "sshVersion" to "2.0",
             "compression" to config.options.compression.toString(),
             "bastionHost" to bastionHost,
             "bastionPort" to bastionPort.toString(),
-            "bastionUser" to bastionUser,
+            "bastionUsername" to bastionUser,
+            "targetHost" to config.host,
+            "targetPort" to config.port.toString(),
             "customProxyCommand" to (proxyCommand != null).toString()
         )
     }

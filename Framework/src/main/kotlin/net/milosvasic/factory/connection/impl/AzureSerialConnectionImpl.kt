@@ -1,6 +1,7 @@
 package net.milosvasic.factory.connection.impl
 
 import net.milosvasic.factory.connection.*
+import net.milosvasic.factory.validation.ValidationResult
 import net.milosvasic.logger.Log
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -36,20 +37,36 @@ class AzureSerialConnectionImpl(config: ConnectionConfig) : BaseConnection(confi
     private val subscription: String?
 
     init {
-        // VM name from host field or properties
-        vmName = config.host.takeIf { it.isNotEmpty() }
-            ?: config.options.getProperty("vmName")
-            .takeIf { it.isNotEmpty() }
-            ?: throw IllegalArgumentException("Azure VM name is required")
+        // VM name from host field or cloudConfig
+        // Use empty string as placeholder if not provided - validation happens later
+        vmName = config.cloudConfig?.vmName?.takeIf { it.isNotEmpty() }
+            ?: config.host.takeIf { it.isNotEmpty() }
+            ?: config.options.getProperty("vmName").takeIf { it.isNotEmpty() }
+            ?: ""
 
-        resourceGroup = config.options.getProperty("resourceGroup").takeIf { it.isNotEmpty() }
-            ?: throw IllegalArgumentException("Azure resource group is required")
+        resourceGroup = config.cloudConfig?.resourceGroup?.takeIf { it.isNotEmpty() }
+            ?: config.options.getProperty("resourceGroup").takeIf { it.isNotEmpty() }
+            ?: ""
 
-        subscription = config.options.getProperty("subscription").takeIf { it.isNotEmpty() }
+        subscription = config.cloudConfig?.subscriptionId?.takeIf { it.isNotEmpty() }
+            ?: config.options.getProperty("subscription").takeIf { it.isNotEmpty() }
+
+        // Note: Validation happens during connection or via validateConfig(), not in constructor
+        // This allows for testing with invalid configurations and proper error handling
     }
 
     override fun doConnect(): ConnectionResult {
         return try {
+            // Validate VM name is provided
+            if (vmName.isEmpty()) {
+                return ConnectionResult.Failure("Azure VM name is required")
+            }
+
+            // Validate resource group is provided
+            if (resourceGroup.isEmpty()) {
+                return ConnectionResult.Failure("Azure resource group is required")
+            }
+
             // Check if VM exists and serial console is available
             val showCmd = buildAzCommand(listOf(
                 "vm", "show",
@@ -224,12 +241,34 @@ class AzureSerialConnectionImpl(config: ConnectionConfig) : BaseConnection(confi
         return Pair(stdout, stderr)
     }
 
+    override fun validateConfig(): ValidationResult {
+        // First, check base config validation
+        val baseResult = super.validateConfig()
+        if (baseResult.isFailed()) {
+            return baseResult
+        }
+
+        // Validate VM name is provided
+        if (vmName.isEmpty()) {
+            return ValidationResult.Invalid("Azure VM name is required")
+        }
+
+        // Validate resource group is provided
+        if (resourceGroup.isEmpty()) {
+            return ValidationResult.Invalid("Azure resource group is required")
+        }
+
+        return ValidationResult.Valid
+    }
+
     override fun buildMetadataProperties(): Map<String, String> {
         return super.buildMetadataProperties() + mapOf(
-            "protocol" to "Azure-Serial",
+            "protocol" to "Azure Serial Console",
+            "authMethod" to "Azure Serial Console",
             "vmName" to vmName,
             "resourceGroup" to resourceGroup,
-            "subscription" to (subscription ?: "default")
+            "subscriptionId" to (subscription ?: "default"),
+            "cloudProvider" to "AZURE"
         )
     }
 }

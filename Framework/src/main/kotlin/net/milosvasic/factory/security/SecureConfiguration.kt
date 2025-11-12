@@ -47,19 +47,31 @@ object SecureConfiguration {
     }
 
     /**
-     * Gets the master encryption key from environment.
+     * Gets the master encryption key from environment or system properties.
+     *
+     * Checks in order:
+     * 1. Environment variable MAIL_FACTORY_MASTER_KEY
+     * 2. System property MAIL_FACTORY_MASTER_KEY (for testing)
      *
      * @return Master key for decryption
      * @throws SecureConfigurationException if master key not found
      */
     fun getMasterKey(): String {
-        val masterKey = System.getenv(ENV_MASTER_KEY)
-        if (masterKey.isNullOrEmpty()) {
-            throw SecureConfigurationException(
-                "Master key not found. Set environment variable $ENV_MASTER_KEY"
-            )
+        // Check environment variable first
+        val envKey = System.getenv(ENV_MASTER_KEY)
+        if (!envKey.isNullOrEmpty()) {
+            return envKey
         }
-        return masterKey
+
+        // Fall back to system property (useful for testing)
+        val propKey = System.getProperty(ENV_MASTER_KEY)
+        if (!propKey.isNullOrEmpty()) {
+            return propKey
+        }
+
+        throw SecureConfigurationException(
+            "Master key not found. Set environment variable or system property $ENV_MASTER_KEY"
+        )
     }
 
     /**
@@ -99,12 +111,13 @@ object SecureConfiguration {
     }
 
     /**
-     * Gets a secret from environment variables or secrets file.
+     * Gets a secret from environment variables, system properties, or secrets file.
      *
      * Priority:
      * 1. Environment variable
-     * 2. Secrets file
-     * 3. null (not found)
+     * 2. System property (for testing)
+     * 3. Secrets file
+     * 4. null (not found)
      *
      * @param key The secret key to retrieve
      * @return The secret value or null if not found
@@ -114,6 +127,12 @@ object SecureConfiguration {
         val envValue = System.getenv(key)
         if (!envValue.isNullOrEmpty()) {
             return envValue
+        }
+
+        // Check system property (useful for testing)
+        val propValue = System.getProperty(key)
+        if (!propValue.isNullOrEmpty()) {
+            return propValue
         }
 
         // Check secrets map

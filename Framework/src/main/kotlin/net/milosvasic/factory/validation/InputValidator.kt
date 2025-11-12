@@ -63,6 +63,19 @@ object InputValidator {
         "%"
     )
 
+    // Dangerous shell commands that should be filtered out
+    private val DANGEROUS_COMMANDS = setOf(
+        "rm", "dd", "mkfs", "format", "fdisk", "parted",
+        "kill", "killall", "pkill", "reboot", "shutdown", "halt", "poweroff",
+        "chmod", "chown", "chgrp", "chattr",
+        "iptables", "firewall-cmd", "ufw",
+        "useradd", "userdel", "usermod", "passwd",
+        "su", "sudo", "doas",
+        "wget", "curl", "nc", "netcat", "telnet", "ftp",
+        "exec", "eval", "source",
+        "crontab", "at", "batch"
+    )
+
     /**
      * Determines if a string that contains only digits and dots is likely an invalid IPv4 attempt.
      *
@@ -281,7 +294,7 @@ object InputValidator {
     /**
      * Sanitizes a string for safe use in shell commands.
      *
-     * Removes dangerous characters and escapes the result.
+     * Removes dangerous characters, dangerous commands, and escapes the result.
      * Returns a quoted string safe for shell execution.
      *
      * @param input The input string to sanitize
@@ -291,11 +304,25 @@ object InputValidator {
         // Remove null bytes
         val cleaned = input.replace("\u0000", "")
 
-        // Remove dangerous shell characters
-        val filtered = cleaned.filter { it !in SHELL_DANGEROUS_CHARS }
+        // Replace dangerous shell characters with spaces (not remove) to preserve word boundaries
+        var filtered = cleaned
+        SHELL_DANGEROUS_CHARS.forEach { dangerousChar ->
+            filtered = filtered.replace(dangerousChar, ' ')
+        }
+
+        // Remove dangerous command words (case-insensitive)
+        var sanitized = filtered
+        DANGEROUS_COMMANDS.forEach { dangerousCmd ->
+            // Match word boundaries to avoid removing partial matches
+            // e.g., "remove" should not match "rm", but "rm file" should
+            sanitized = sanitized.replace(Regex("\\b${Regex.escape(dangerousCmd)}\\b", RegexOption.IGNORE_CASE), "")
+        }
+
+        // Remove extra whitespace that may have been left after command removal
+        sanitized = sanitized.replace(Regex("\\s+"), " ").trim()
 
         // Escape single quotes by replacing ' with '\''
-        val escaped = filtered.replace("'", "'\\''")
+        val escaped = sanitized.replace("'", "'\\''")
 
         // Return single-quoted string
         return "'$escaped'"

@@ -1,6 +1,7 @@
 package net.milosvasic.factory.connection.impl
 
 import net.milosvasic.factory.connection.*
+import net.milosvasic.factory.validation.ValidationResult
 import net.milosvasic.logger.Log
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -34,30 +35,46 @@ class SSHCertificateConnectionImpl(config: ConnectionConfig) : BaseConnection(co
     private val caKeyPath: String?
 
     init {
-        // Certificate path is required
-        certificatePath = config.options.getProperty("certificatePath").takeIf { it.isNotEmpty() }
-            ?: throw IllegalArgumentException("Certificate path is required for SSH certificate authentication")
+        // Certificate path from credentials first, then fall back to options
+        // Use empty string as placeholder if not provided - validation happens later
+        certificatePath = config.credentials?.certificatePath?.takeIf { it.isNotEmpty() }
+            ?: config.options.getProperty("certificatePath").takeIf { it.isNotEmpty() }
+            ?: ""
 
-        // Private key path is required
+        // Private key path - use empty string as placeholder if not provided
         keyPath = config.credentials?.keyPath?.takeIf { it.isNotEmpty() }
-            ?: throw IllegalArgumentException("Private key path is required for SSH certificate authentication")
+            ?: ""
 
         // CA key path is optional
         caKeyPath = config.options.getProperty("caKeyPath").takeIf { it.isNotEmpty() }
 
-        // Validate certificate file exists
-        if (!File(certificatePath).exists()) {
-            throw IllegalArgumentException("Certificate file not found: $certificatePath")
-        }
-
-        // Validate key file exists
-        if (!File(keyPath).exists()) {
-            throw IllegalArgumentException("Private key file not found: $keyPath")
-        }
+        // Note: File existence and required field validation happens during connection
+        // or via validateConfig(), not in constructor
+        // This allows for testing with mock/invalid paths and proper error handling
     }
 
     override fun doConnect(): ConnectionResult {
         return try {
+            // Validate certificate path is provided
+            if (certificatePath.isEmpty()) {
+                return ConnectionResult.Failure("Certificate path is required for SSH certificate authentication")
+            }
+
+            // Validate key path is provided
+            if (keyPath.isEmpty()) {
+                return ConnectionResult.Failure("Private key path is required for SSH certificate authentication")
+            }
+
+            // Validate certificate file exists
+            if (!File(certificatePath).exists()) {
+                return ConnectionResult.Failure("Certificate file not found: $certificatePath")
+            }
+
+            // Validate key file exists
+            if (!File(keyPath).exists()) {
+                return ConnectionResult.Failure("Private key file not found: $keyPath")
+            }
+
             // Test SSH connection with certificate authentication
             val testCommand = buildSSHCommand("echo 'connected'")
             val process = ProcessBuilder(testCommand)
@@ -315,13 +332,35 @@ class SSHCertificateConnectionImpl(config: ConnectionConfig) : BaseConnection(co
         return scpCommand
     }
 
+    override fun validateConfig(): ValidationResult {
+        // First, check base config validation
+        val baseResult = super.validateConfig()
+        if (baseResult.isFailed()) {
+            return baseResult
+        }
+
+        // Validate certificate path is provided
+        if (certificatePath.isEmpty()) {
+            return ValidationResult.Invalid("Certificate path is required for SSH certificate authentication")
+        }
+
+        // Validate key path is provided
+        if (keyPath.isEmpty()) {
+            return ValidationResult.Invalid("Private key path is required for SSH certificate authentication")
+        }
+
+        return ValidationResult.Valid
+    }
+
     override fun buildMetadataProperties(): Map<String, String> {
         return super.buildMetadataProperties() + mapOf(
-            "protocol" to "SSH-Certificate",
+            "protocol" to "SSH",
+            "authMethod" to "SSH Certificate",
             "sshVersion" to "2.0",
             "compression" to config.options.compression.toString(),
             "certificateAuth" to "true",
             "certificatePath" to certificatePath,
+            "keyPath" to keyPath,
             "hasCaKey" to (caKeyPath != null).toString()
         )
     }

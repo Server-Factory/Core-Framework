@@ -37,14 +37,18 @@ class GCPOSLoginConnectionImpl(config: ConnectionConfig) : BaseConnection(config
     private val useInternalIP: Boolean
 
     init {
-        // Instance name from host field or properties
+        // Instance name from host field, cloudConfig, or properties
         instanceName = config.host.takeIf { it.isNotEmpty() }
-            ?: config.options.getProperty("instanceName")
-            .takeIf { it.isNotEmpty() }
+            ?: config.cloudConfig?.instanceId
+            ?: config.options.getProperty("instanceName").takeIf { it.isNotEmpty() }
             ?: throw IllegalArgumentException("GCP instance name is required")
 
-        zone = config.options.getProperty("zone").takeIf { it.isNotEmpty() }
-        project = config.options.getProperty("project").takeIf { it.isNotEmpty() }
+        zone = config.cloudConfig?.zone
+            ?: config.options.getProperty("zone").takeIf { it.isNotEmpty() }
+
+        project = config.cloudConfig?.project
+            ?: config.options.getProperty("project").takeIf { it.isNotEmpty() }
+
         username = config.credentials?.username.takeIf { it?.isNotEmpty() == true }
         useInternalIP = config.options.getProperty("internalIP", "false").toBoolean()
     }
@@ -274,13 +278,34 @@ class GCPOSLoginConnectionImpl(config: ConnectionConfig) : BaseConnection(config
     }
 
     override fun buildMetadataProperties(): Map<String, String> {
+        // Build display name with project/zone info
+        val displayName = if (project != null && zone != null) {
+            "$instanceName ($project/$zone)"
+        } else if (zone != null) {
+            "$instanceName ($zone)"
+        } else {
+            instanceName
+        }
+
+        // Check for service account in cloudConfig properties
+        val serviceAccount = config.cloudConfig?.properties?.get("serviceAccount")
+            ?: config.cloudConfig?.serviceAccountKey
+
         return super.buildMetadataProperties() + mapOf(
-            "protocol" to "GCP-OSLogin",
+            "protocol" to "GCP OS Login",
+            "authMethod" to "GCP OS Login",
+            "cloudProvider" to "GCP",
             "instanceName" to instanceName,
+            "instanceId" to instanceName,
             "zone" to (zone ?: "default"),
             "project" to (project ?: "default"),
             "username" to (username ?: "auto"),
-            "useInternalIP" to useInternalIP.toString()
-        )
+            "useInternalIP" to useInternalIP.toString(),
+            "displayName" to displayName
+        ) + if (serviceAccount != null) {
+            mapOf("serviceAccount" to serviceAccount)
+        } else {
+            emptyMap()
+        }
     }
 }

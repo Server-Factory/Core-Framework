@@ -53,10 +53,11 @@ object AuditLogger {
     private const val DEFAULT_RETENTION_DAYS = 90
     private const val DEFAULT_FLUSH_INTERVAL_SECONDS = 5L
 
-    private val logDir: File
-    private val maxSizeBytes: Long
-    private val retentionDays: Int
-    private val flushIntervalSeconds: Long
+    // Mutable configuration (can be updated on re-initialization)
+    private var logDir: File
+    private var maxSizeBytes: Long
+    private var retentionDays: Int
+    private var flushIntervalSeconds: Long
 
     private var currentLogFile: File? = null
     private var currentWriter: PrintWriter? = null
@@ -77,30 +78,90 @@ object AuditLogger {
         .withZone(ZoneId.of("UTC"))
 
     init {
-        // Load configuration
-        val logDirPath = System.getenv("MAIL_FACTORY_AUDIT_LOG_DIR") ?: DEFAULT_LOG_DIR
-        logDir = File(logDirPath)
-
-        maxSizeBytes = (System.getenv("MAIL_FACTORY_AUDIT_LOG_MAX_SIZE")?.toLongOrNull()
-            ?: DEFAULT_MAX_SIZE_MB.toLong()) * 1024 * 1024
-
-        retentionDays = System.getenv("MAIL_FACTORY_AUDIT_LOG_RETENTION_DAYS")?.toIntOrNull()
-            ?: DEFAULT_RETENTION_DAYS
-
-        flushIntervalSeconds = System.getenv("MAIL_FACTORY_AUDIT_LOG_FLUSH_INTERVAL")?.toLongOrNull()
-            ?: DEFAULT_FLUSH_INTERVAL_SECONDS
+        // Load initial configuration (will be reloaded on initialize() if properties change)
+        logDir = loadLogDir()
+        maxSizeBytes = loadMaxSizeBytes()
+        retentionDays = loadRetentionDays()
+        flushIntervalSeconds = loadFlushIntervalSeconds()
 
         // Auto-initialize
         initialize()
     }
 
     /**
+     * Loads log directory from configuration.
+     */
+    private fun loadLogDir(): File {
+        val logDirPath = System.getProperty("MAIL_FACTORY_AUDIT_LOG_DIR")
+            ?: System.getenv("MAIL_FACTORY_AUDIT_LOG_DIR")
+            ?: DEFAULT_LOG_DIR
+        return File(logDirPath)
+    }
+
+    /**
+     * Loads max size from configuration.
+     */
+    private fun loadMaxSizeBytes(): Long {
+        return (System.getProperty("MAIL_FACTORY_AUDIT_LOG_MAX_SIZE")?.toLongOrNull()
+            ?: System.getenv("MAIL_FACTORY_AUDIT_LOG_MAX_SIZE")?.toLongOrNull()
+            ?: DEFAULT_MAX_SIZE_MB.toLong()) * 1024 * 1024
+    }
+
+    /**
+     * Loads retention days from configuration.
+     */
+    private fun loadRetentionDays(): Int {
+        return System.getProperty("MAIL_FACTORY_AUDIT_LOG_RETENTION_DAYS")?.toIntOrNull()
+            ?: System.getenv("MAIL_FACTORY_AUDIT_LOG_RETENTION_DAYS")?.toIntOrNull()
+            ?: DEFAULT_RETENTION_DAYS
+    }
+
+    /**
+     * Loads flush interval from configuration.
+     */
+    private fun loadFlushIntervalSeconds(): Long {
+        return System.getProperty("MAIL_FACTORY_AUDIT_LOG_FLUSH_INTERVAL")?.toLongOrNull()
+            ?: System.getenv("MAIL_FACTORY_AUDIT_LOG_FLUSH_INTERVAL")?.toLongOrNull()
+            ?: DEFAULT_FLUSH_INTERVAL_SECONDS
+    }
+
+    /**
      * Initializes the audit logging system.
+     *
+     * If already initialized, this will re-initialize with current configuration
+     * (useful for testing when configuration properties change).
      */
     @Synchronized
     fun initialize() {
+        // If already initialized, shut down first to allow re-initialization
         if (isInitialized.get()) {
-            return
+            // Flush any pending entries first
+            try {
+                flush()
+            } catch (e: Exception) {
+                // Ignore flush errors during re-initialization
+            }
+
+            // Silently clean up current resources without logging
+            try {
+                currentWriter?.close()
+                scheduler?.shutdown()
+                scheduler?.awaitTermination(1, TimeUnit.SECONDS)
+            } catch (e: Exception) {
+                // Ignore cleanup errors during re-initialization
+            }
+
+            // Clear the queue to avoid writing to old log files
+            logQueue.clear()
+
+            isInitialized.set(false)
+            isShutdown.set(false)
+
+            // Reload configuration (properties may have changed)
+            logDir = loadLogDir()
+            maxSizeBytes = loadMaxSizeBytes()
+            retentionDays = loadRetentionDays()
+            flushIntervalSeconds = loadFlushIntervalSeconds()
         }
 
         try {

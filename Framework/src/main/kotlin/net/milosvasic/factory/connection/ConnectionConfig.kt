@@ -108,8 +108,13 @@ data class ConnectionConfig(
             }
             ConnectionType.GCP_OS_LOGIN -> {
                 val instanceId = cloudConfig?.instanceId ?: host
+                val project = cloudConfig?.project
                 val zone = cloudConfig?.zone
-                if (zone != null) "$instanceId ($zone)" else instanceId
+                when {
+                    project != null && zone != null -> "$instanceId ($project/$zone)"
+                    zone != null -> "$instanceId ($zone)"
+                    else -> instanceId
+                }
             }
             else -> "${credentials?.username ?: "user"}@$host:$port"
         }

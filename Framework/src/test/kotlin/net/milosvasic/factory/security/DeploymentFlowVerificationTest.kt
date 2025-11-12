@@ -72,7 +72,7 @@ class DeploymentFlowVerificationTest {
         assertTrue(SecureConfiguration.isEncrypted(dbPassEncrypted))
 
         val dbPassDecrypted = SecureConfiguration.decryptPassword(
-            dbPassEncrypted.removePrefix("encrypted:"),
+            dbPassEncrypted,  // Don't remove prefix - decryptPassword() does it
             testMasterKey
         )
         assertEquals(dbPassword, dbPassDecrypted)
@@ -82,7 +82,7 @@ class DeploymentFlowVerificationTest {
         assertEquals("mail.example.com", sshConfig["host"])
 
         val sshPassDecrypted = SecureConfiguration.decryptPassword(
-            (sshConfig["password"] as String).removePrefix("encrypted:"),
+            sshConfig["password"] as String,  // Don't remove prefix
             testMasterKey
         )
         assertEquals(sshPassword, sshPassDecrypted)
@@ -206,7 +206,7 @@ class DeploymentFlowVerificationTest {
         // Decrypt password
         val encryptedPass = connectionParams["password"] as String
         val password = SecureConfiguration.decryptPassword(
-            encryptedPass.removePrefix("encrypted:"),
+            encryptedPass,  // Don't remove prefix
             testMasterKey
         )
 
@@ -521,7 +521,7 @@ class DeploymentFlowVerificationTest {
 
             // Decrypt password
             val password = SecureConfiguration.decryptPassword(
-                (account["password"] as String).removePrefix("encrypted:"),
+                account["password"] as String,  // Don't remove prefix
                 testMasterKey
             )
             assertNotNull(password)
