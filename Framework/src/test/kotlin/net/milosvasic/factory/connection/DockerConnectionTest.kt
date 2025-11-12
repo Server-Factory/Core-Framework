@@ -44,7 +44,7 @@ class DockerConnectionTest {
         val metadata = connection.getMetadata()
 
         assertEquals(ConnectionType.DOCKER, metadata.type)
-        assertEquals("unix:///var/run/docker.sock", metadata.host)
+        assertEquals("test-container", metadata.host)
         assertEquals(0, metadata.port)
     }
 
@@ -234,9 +234,13 @@ class DockerConnectionTest {
     fun testDockerConnectionBuilder() {
         val connection = ConnectionFactory.build {
             type(ConnectionType.DOCKER)
-            host("test-container")
+            host("unix:///var/run/docker.sock")
+            containerConfig(ContainerConfig(
+                containerType = ContainerType.DOCKER,
+                containerName = "test-container"
+            ))
         }
-        
+
         val metadata = connection.getMetadata()
         assertEquals(ConnectionType.DOCKER, metadata.type)
         assertEquals("test-container", metadata.host)
@@ -247,13 +251,17 @@ class DockerConnectionTest {
     fun testDockerConnectionConfiguration() {
         val config = ConnectionConfigBuilder()
             .type(ConnectionType.DOCKER)
-            .host("test-container")
+            .host("unix:///var/run/docker.sock")
             .port(0)
+            .containerConfig(ContainerConfig(
+                containerType = ContainerType.DOCKER,
+                containerName = "test-container"
+            ))
             .build()
-            
+
         assertTrue(config.validate().isSuccess())
         assertEquals(ConnectionType.DOCKER, config.type)
-        assertEquals("test-container", config.host)
+        assertEquals("unix:///var/run/docker.sock", config.host)
     }
 
     @Test
@@ -261,9 +269,13 @@ class DockerConnectionTest {
     fun testDockerConnectionValidation() {
         val validConfig = ConnectionConfigBuilder()
             .type(ConnectionType.DOCKER)
-            .host("test-container")
+            .host("unix:///var/run/docker.sock")
+            .containerConfig(ContainerConfig(
+                containerType = ContainerType.DOCKER,
+                containerName = "test-container"
+            ))
             .build()
-            
+
         val result = validConfig.validate()
         assertTrue(result.isSuccess())
     }

@@ -19,14 +19,14 @@ object ConnectionFactory {
      *
      * @param config Connection configuration
      * @return Connection instance
-     * @throws IllegalArgumentException if configuration is invalid
+     * @throws ConnectionException if configuration is invalid
      */
     fun create(config: ConnectionConfig): Connection {
         // Validate configuration
         val validationResult = config.validate()
         if (validationResult.isFailed()) {
             val errorMessage = (validationResult as net.milosvasic.factory.validation.ValidationResult.Invalid).reason
-            throw IllegalArgumentException("Invalid connection configuration: $errorMessage")
+            throw ConnectionException("Invalid connection configuration: $errorMessage")
         }
 
         Log.i("Creating ${config.type} connection to ${config.getDisplayName()}")

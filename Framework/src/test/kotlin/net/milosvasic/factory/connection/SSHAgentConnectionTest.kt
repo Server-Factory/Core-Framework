@@ -23,6 +23,7 @@ class SSHAgentConnectionTest {
             .host("test.example.com")
             .port(22)
             .credentials(Credentials("testuser", agentSocket = "/tmp/ssh-agent.sock"))
+            .options(ConnectionOptions(properties = mapOf("forwardAgent" to "true")))
             .build()
     }
 
@@ -177,7 +178,7 @@ class SSHAgentConnectionTest {
         val connection = SSHAgentConnectionImpl(config)
         val metadata = connection.getMetadata()
 
-        assertEquals("SSH", metadata.properties["protocol"])
+        assertEquals("SSH-Agent", metadata.properties["protocol"])
     }
 
     @Test

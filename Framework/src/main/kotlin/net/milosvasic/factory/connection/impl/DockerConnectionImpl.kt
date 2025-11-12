@@ -31,16 +31,19 @@ class DockerConnectionImpl(config: ConnectionConfig) : BaseConnection(config) {
     private val execUser: String
 
     init {
-        // Container ID from host field or properties
-        containerId = config.host.takeIf { it.isNotEmpty() }
+        // Container ID from containerConfig, host field, or properties
+        containerId = config.containerConfig?.containerName
+            ?: config.containerConfig?.image
+            ?: config.host.takeIf { it.isNotEmpty() && !it.startsWith("unix://") && !it.startsWith("tcp://") }
             ?: config.options.getProperty("containerId")
             .takeIf { it.isNotEmpty() }
             ?: config.options.getProperty("containerName")
             .takeIf { it.isNotEmpty() }
             ?: throw IllegalArgumentException("Container ID or name required")
 
-        workdir = config.options.getProperty("workdir").takeIf { it.isNotEmpty() }
-        execUser = config.options.getProperty("user", "root")
+        workdir = config.containerConfig?.properties?.get("workdir")
+            ?: config.options.getProperty("workdir").takeIf { it.isNotEmpty() }
+        execUser = config.containerConfig?.properties?.get("user") ?: "root"
     }
 
     override fun doConnect(): ConnectionResult {
@@ -211,12 +214,28 @@ class DockerConnectionImpl(config: ConnectionConfig) : BaseConnection(config) {
         return dockerCmd
     }
 
+    override fun getMetadata(): ConnectionMetadata {
+        return ConnectionMetadata(
+            type = config.type,
+            host = containerId, // Use container name/id as host
+            port = config.port,
+            username = config.credentials?.username ?: "root",
+            displayName = "docker://$containerId",
+            properties = buildMetadataProperties()
+        )
+    }
+
     override fun buildMetadataProperties(): Map<String, String> {
+        val containerConfig = config.containerConfig
         return super.buildMetadataProperties() + mapOf(
             "protocol" to "Docker",
-            "containerId" to containerId,
+            "containerName" to containerId,
+            "containerType" to "DOCKER",
+            "dockerHost" to (containerConfig?.dockerHost ?: config.host),
+            "image" to (containerConfig?.image ?: ""),
+            "network" to (containerConfig?.network ?: ""),
             "user" to execUser,
-            "workdir" to (workdir ?: "default")
-        )
+            "workdir" to (workdir ?: "/")
+        ).filterValues { it.isNotEmpty() }
     }
 }

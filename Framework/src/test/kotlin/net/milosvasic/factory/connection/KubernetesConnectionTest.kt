@@ -26,6 +26,7 @@ class KubernetesConnectionTest {
                 containerType = ContainerType.KUBERNETES,
                 namespace = "mail-production",
                 podSelector = "app=mail-server",
+                podName = "test-pod",
                 containerInPod = "postfix",
                 kubeconfig = "/home/user/.kube/config"
             ))
@@ -46,7 +47,7 @@ class KubernetesConnectionTest {
         val metadata = connection.getMetadata()
 
         assertEquals(ConnectionType.KUBERNETES, metadata.type)
-        assertEquals("k8s-cluster.example.com", metadata.host)
+        assertEquals("test-pod", metadata.host)
         assertEquals(443, metadata.port)
     }
 
@@ -248,7 +249,7 @@ class KubernetesConnectionTest {
         val map = metadata.toMap()
 
         assertEquals("KUBERNETES", map["type"])
-        assertEquals("k8s-cluster.example.com", map["host"])
+        assertEquals("test-pod", map["host"])
         assertEquals("443", map["port"])
         assertEquals("mail-production", map["namespace"])
     }

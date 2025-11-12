@@ -31,8 +31,9 @@ class SSHAgentConnectionImpl(config: ConnectionConfig) : BaseConnection(config) 
     private val forwardAgent: Boolean
 
     init {
-        // Get agent socket from config or environment
-        agentSocket = config.options.getProperty("agentSocket").takeIf { it.isNotEmpty() }
+        // Get agent socket from credentials, config options, or environment
+        agentSocket = config.credentials?.agentSocket
+            ?: config.options.getProperty("agentSocket").takeIf { it.isNotEmpty() }
             ?: System.getenv("SSH_AUTH_SOCK")
 
         forwardAgent = config.options.getProperty("forwardAgent", "false").toBoolean()
@@ -332,9 +333,11 @@ class SSHAgentConnectionImpl(config: ConnectionConfig) : BaseConnection(config) 
     override fun buildMetadataProperties(): Map<String, String> {
         return super.buildMetadataProperties() + mapOf(
             "protocol" to "SSH-Agent",
+            "authMethod" to "SSH Agent",
             "sshVersion" to "2.0",
             "compression" to config.options.compression.toString(),
-            "agentForwarding" to forwardAgent.toString(),
+            "strictHostKeyChecking" to config.options.strictHostKeyChecking.toString(),
+            "agentForwarding" to if (forwardAgent) "enabled" else "disabled",
             "agentSocket" to (agentSocket ?: "not-set")
         )
     }

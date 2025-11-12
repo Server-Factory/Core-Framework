@@ -276,7 +276,11 @@ class ConnectionFactoryTest {
     fun testDockerConnectionBuilder() {
         val connection = ConnectionFactory.build {
             type(ConnectionType.DOCKER)
-            host("test-container")
+            host("unix:///var/run/docker.sock")
+            containerConfig(ContainerConfig(
+                containerType = ContainerType.DOCKER,
+                containerName = "test-container"
+            ))
         }
 
         assertNotNull(connection)

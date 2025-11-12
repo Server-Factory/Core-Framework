@@ -33,13 +33,17 @@ class KubernetesConnectionImpl(config: ConnectionConfig) : BaseConnection(config
     private val context: String?
 
     init {
-        podName = config.host.takeIf { it.isNotEmpty() }
+        val containerConfig = config.containerConfig
+            ?: throw IllegalArgumentException("Container config required for Kubernetes connections")
+
+        podName = containerConfig.podName
+            ?: config.host.takeIf { it.isNotEmpty() }
             ?: config.options.getProperty("podName")
             .takeIf { it.isNotEmpty() }
             ?: throw IllegalArgumentException("Pod name required")
 
-        namespace = config.options.getProperty("namespace", "default")
-        container = config.options.getProperty("container").takeIf { it.isNotEmpty() }
+        namespace = containerConfig.namespace ?: "default"
+        container = containerConfig.containerInPod
         context = config.options.getProperty("context").takeIf { it.isNotEmpty() }
     }
 
@@ -246,13 +250,35 @@ class KubernetesConnectionImpl(config: ConnectionConfig) : BaseConnection(config
         return buildKubectlCommand(args)
     }
 
+    override fun getMetadata(): ConnectionMetadata {
+        val containerConfig = config.containerConfig
+        val displayName = if (containerConfig != null) {
+            "$namespace/${containerConfig.podSelector}/${containerConfig.containerInPod}"
+        } else {
+            "k8s://$namespace/$podName"
+        }
+
+        return ConnectionMetadata(
+            type = config.type,
+            host = podName, // Use pod name as host for Kubernetes connections
+            port = config.port,
+            username = config.credentials?.username ?: "system",
+            displayName = displayName,
+            properties = buildMetadataProperties()
+        )
+    }
+
     override fun buildMetadataProperties(): Map<String, String> {
+        val containerConfig = config.containerConfig
         return super.buildMetadataProperties() + mapOf(
             "protocol" to "Kubernetes",
+            "authMethod" to "Kubernetes",
             "podName" to podName,
             "namespace" to namespace,
-            "container" to (container ?: "default"),
+            "podSelector" to (containerConfig?.podSelector ?: ""),
+            "containerInPod" to (container ?: ""),
+            "kubeconfig" to (containerConfig?.kubeconfig ?: ""),
             "context" to (context ?: "current")
-        )
+        ).filterValues { it.isNotEmpty() }
     }
 }

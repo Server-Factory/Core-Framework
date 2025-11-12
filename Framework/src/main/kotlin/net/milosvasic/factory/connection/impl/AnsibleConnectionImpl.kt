@@ -1,6 +1,7 @@
 package net.milosvasic.factory.connection.impl
 
 import net.milosvasic.factory.connection.*
+import net.milosvasic.factory.validation.ValidationResult
 import net.milosvasic.logger.Log
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -32,6 +33,7 @@ class AnsibleConnectionImpl(config: ConnectionConfig) : BaseConnection(config) {
 
     private val username = config.credentials?.username ?: "root"
     private val inventoryPath: String?
+    private val playbookDir: String?
     private val tempInventoryFile: File?
     private val connectionType: String
     private val becomeMethod: String
@@ -41,6 +43,7 @@ class AnsibleConnectionImpl(config: ConnectionConfig) : BaseConnection(config) {
 
     init {
         inventoryPath = config.options.getProperty("inventoryPath").takeIf { it.isNotEmpty() }
+        playbookDir = config.options.getProperty("playbookDir").takeIf { it.isNotEmpty() }
         connectionType = config.options.getProperty("connection", "ssh")
         becomeMethod = config.options.getProperty("becomeMethod", "sudo")
         becomeUser = config.options.getProperty("becomeUser", "root")
@@ -426,12 +429,31 @@ class AnsibleConnectionImpl(config: ConnectionConfig) : BaseConnection(config) {
         return Pair(stdout, stderr)
     }
 
+    override fun validateConfig(): ValidationResult {
+        // First run base validation
+        val baseResult = super.validateConfig()
+        if (baseResult.isFailed()) {
+            return baseResult
+        }
+
+        // Check for required Ansible-specific configuration
+        if (inventoryPath == null && config.options.getProperty("inventoryPath").isEmpty()) {
+            return ValidationResult.Invalid("Inventory path required for Ansible connections")
+        }
+
+        return ValidationResult.Valid
+    }
+
     override fun buildMetadataProperties(): Map<String, String> {
         return super.buildMetadataProperties() + mapOf(
             "protocol" to "Ansible",
             "connection" to connectionType,
             "becomeMethod" to becomeMethod,
             "becomeUser" to becomeUser,
+            "authMethod" to "Ansible",
+            "inventoryPath" to (inventoryPath ?: ""),
+            "playbookDir" to (playbookDir ?: ""),
+            "extraVars" to (extraVars ?: ""),
             "hasInventory" to (inventoryPath != null).toString(),
             "hasExtraVars" to (extraVars != null).toString()
         )

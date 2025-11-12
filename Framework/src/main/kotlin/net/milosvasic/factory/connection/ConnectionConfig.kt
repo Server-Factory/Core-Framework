@@ -116,6 +116,7 @@ data class ConnectionConfig(
                     else -> instanceId
                 }
             }
+            ConnectionType.ANSIBLE -> "${credentials?.username ?: "user"}@$host"
             else -> "${credentials?.username ?: "user"}@$host:$port"
         }
     }
