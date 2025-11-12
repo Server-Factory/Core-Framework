@@ -1,6 +1,7 @@
 package net.milosvasic.factory.connection.impl
 
 import net.milosvasic.factory.connection.*
+import net.milosvasic.factory.validation.ValidationResult
 import net.milosvasic.logger.Log
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -44,8 +45,14 @@ class WinRMConnectionImpl(config: ConnectionConfig) : BaseConnection(config) {
         password = config.credentials?.password
             ?: throw IllegalArgumentException("Password is required for WinRM connection")
 
-        transport = config.options.getProperty("transport", "ntlm")
-        useSSL = config.options.getProperty("useSSL", "true").toBoolean()
+        // Support both "authType" and "transport" property names (authType preferred)
+        transport = config.options.getProperty("authType")
+            ?: config.options.getProperty("transport", "ntlm")
+
+        // Support both "useHttps" and "useSSL" property names (useHttps preferred)
+        useSSL = config.options.getProperty("useHttps")?.toBoolean()
+            ?: config.options.getProperty("useSSL", "true").toBoolean()
+
         serverCertValidation = config.options.getProperty("serverCertValidation", "ignore")
         messageEncryption = config.options.getProperty("messageEncryption", "auto")
 
@@ -147,6 +154,29 @@ class WinRMConnectionImpl(config: ConnectionConfig) : BaseConnection(config) {
         Log.d("WinRM connection closed")
     }
 
+    override fun validateConfig(): ValidationResult {
+        val baseValidation = super.validateConfig()
+        if (baseValidation.isFailed()) {
+            return baseValidation
+        }
+
+        // Validate that authType is specified
+        val authType = config.options.getProperty("authType")
+            ?: config.options.getProperty("transport")
+
+        if (authType.isNullOrEmpty()) {
+            return ValidationResult.Invalid("WinRM connection requires 'authType' property (NTLM, Basic, Kerberos, or CredSSP)")
+        }
+
+        // Validate auth type is one of the supported values
+        val validAuthTypes = listOf("ntlm", "basic", "kerberos", "credssp")
+        if (!validAuthTypes.contains(authType.lowercase())) {
+            return ValidationResult.Invalid("Invalid auth type: $authType. Must be one of: NTLM, Basic, Kerberos, CredSSP")
+        }
+
+        return ValidationResult.Valid
+    }
+
     /**
      * Executes a WinRM command using Python winrm library.
      */
@@ -218,7 +248,10 @@ except Exception as e:
     override fun buildMetadataProperties(): Map<String, String> {
         return super.buildMetadataProperties() + mapOf(
             "protocol" to "WinRM",
+            "authMethod" to "WinRM",
+            "authType" to transport.uppercase(),
             "transport" to transport,
+            "useHttps" to useSSL.toString(),
             "useSSL" to useSSL.toString(),
             "port" to winrmPort.toString(),
             "serverCertValidation" to serverCertValidation,
