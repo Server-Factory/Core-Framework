@@ -35,14 +35,18 @@ class AWSSSMConnectionImpl(config: ConnectionConfig) : BaseConnection(config) {
     private val documentName: String
 
     init {
-        // Instance ID from host field or properties
+        // Instance ID from host field, cloudConfig, or properties
         instanceId = config.host.takeIf { it.isNotEmpty() && it.startsWith("i-") }
-            ?: config.options.getProperty("instanceId")
-            .takeIf { it.isNotEmpty() }
+            ?: config.cloudConfig?.instanceId
+            ?: config.options.getProperty("instanceId").takeIf { it.isNotEmpty() }
             ?: throw IllegalArgumentException("EC2 instance ID required (format: i-xxxxxxxxxxxxxxxxx)")
 
-        region = config.options.getProperty("region").takeIf { it.isNotEmpty() }
-        profile = config.options.getProperty("profile").takeIf { it.isNotEmpty() }
+        region = config.cloudConfig?.region
+            ?: config.options.getProperty("region").takeIf { it.isNotEmpty() }
+
+        profile = config.cloudConfig?.profile
+            ?: config.options.getProperty("profile").takeIf { it.isNotEmpty() }
+
         documentName = config.options.getProperty("documentName", "AWS-StartInteractiveCommand")
     }
 
@@ -242,12 +246,21 @@ class AWSSSMConnectionImpl(config: ConnectionConfig) : BaseConnection(config) {
     }
 
     override fun buildMetadataProperties(): Map<String, String> {
+        val displayName = if (region != null) {
+            "$instanceId ($region)"
+        } else {
+            instanceId
+        }
+
         return super.buildMetadataProperties() + mapOf(
-            "protocol" to "AWS-SSM",
+            "protocol" to "AWS SSM",
+            "authMethod" to "AWS SSM",
+            "cloudProvider" to "AWS",
             "instanceId" to instanceId,
             "region" to (region ?: "default"),
             "profile" to (profile ?: "default"),
-            "documentName" to documentName
+            "documentName" to documentName,
+            "displayName" to displayName
         )
     }
 }

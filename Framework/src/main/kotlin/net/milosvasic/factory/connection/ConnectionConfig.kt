@@ -26,16 +26,24 @@ data class ConnectionConfig(
      * Validates the connection configuration.
      */
     fun validate(): ValidationResult {
-        // Validate host (except for LOCAL type)
-        if (type != ConnectionType.LOCAL) {
+        // Validate host (except for LOCAL and DOCKER types - Docker uses socket paths)
+        val requiresHostValidation = type !in listOf(ConnectionType.LOCAL, ConnectionType.DOCKER)
+        if (requiresHostValidation) {
             val hostResult = InputValidator.validateHost(host)
             if (hostResult.isFailed()) {
                 return hostResult
             }
         }
 
-        // Validate port
-        if (type.isRemote()) {
+        // Validate port (skip for connection types that don't use traditional ports)
+        val requiresPort = type !in listOf(
+            ConnectionType.LOCAL,
+            ConnectionType.DOCKER,
+            ConnectionType.AWS_SSM,
+            ConnectionType.AZURE_SERIAL
+        )
+
+        if (requiresPort && port > 0) {
             val portResult = InputValidator.validatePort(port, allowPrivileged = true)
             if (portResult.isFailed()) {
                 return portResult
@@ -88,6 +96,21 @@ data class ConnectionConfig(
             ConnectionType.LOCAL -> "localhost"
             ConnectionType.DOCKER -> "docker://${containerConfig?.containerName ?: host}"
             ConnectionType.KUBERNETES -> "k8s://${containerConfig?.namespace}/${containerConfig?.podSelector}"
+            ConnectionType.AWS_SSM -> {
+                val instanceId = cloudConfig?.instanceId ?: host
+                val region = cloudConfig?.region
+                if (region != null) "$instanceId ($region)" else instanceId
+            }
+            ConnectionType.AZURE_SERIAL -> {
+                val vmName = cloudConfig?.vmName ?: host
+                val resourceGroup = cloudConfig?.resourceGroup
+                if (resourceGroup != null) "$vmName ($resourceGroup)" else vmName
+            }
+            ConnectionType.GCP_OS_LOGIN -> {
+                val instanceId = cloudConfig?.instanceId ?: host
+                val zone = cloudConfig?.zone
+                if (zone != null) "$instanceId ($zone)" else instanceId
+            }
             else -> "${credentials?.username ?: "user"}@$host:$port"
         }
     }
