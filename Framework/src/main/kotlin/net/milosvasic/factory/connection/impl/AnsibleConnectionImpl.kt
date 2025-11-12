@@ -297,6 +297,122 @@ class AnsibleConnectionImpl(config: ConnectionConfig) : BaseConnection(config) {
     }
 
     /**
+     * Executes an Ansible playbook.
+     * 
+     * @param playbookPath Path to the playbook file
+     * @param extraVars Additional variables to pass to the playbook
+     * @param limit Host pattern to limit execution (optional)
+     * @param tags List of tags to execute (optional)
+     * @param skipTags List of tags to skip (optional)
+     * @return ExecutionResult with success status and output
+     */
+    fun executePlaybook(
+        playbookPath: String,
+        extraVars: Map<String, Any> = emptyMap(),
+        limit: String? = null,
+        tags: List<String> = emptyList(),
+        skipTags: List<String> = emptyList()
+    ): ExecutionResult {
+        return try {
+            val cmd = mutableListOf("ansible-playbook")
+            
+            // Add inventory
+            cmd.add("-i")
+            cmd.add(inventoryPath ?: tempInventoryFile!!.absolutePath)
+            
+            // Add target host pattern if limiting
+            limit?.let {
+                cmd.add("--limit")
+                cmd.add(it)
+            }
+            
+            // Add connection type
+            cmd.add("--connection")
+            cmd.add(connectionType)
+            
+            // Add user if specified
+            if (username != "root") {
+                cmd.add("-u")
+                cmd.add(username)
+            }
+            
+            // Add private key if specified
+            privateKeyPath?.let {
+                cmd.add("--private-key")
+                cmd.add(it)
+            }
+            
+            // Add become options if needed
+            if (becomeUser != username) {
+                cmd.add("--become")
+                cmd.add("--become-method")
+                cmd.add(becomeMethod)
+                cmd.add("--become-user")
+                cmd.add(becomeUser)
+            }
+            
+            // Add extra vars from config and parameters
+            val allExtraVars = mutableMapOf<String, Any>()
+            
+            // Add config extra vars if they're JSON
+            extraVars?.let { vars ->
+                if (vars.isNotEmpty()) {
+                    allExtraVars.putAll(vars)
+                }
+            }
+            
+            if (allExtraVars.isNotEmpty()) {
+                val varsJson = allExtraVars.entries.joinToString(",") { (k, v) -> "\"$k\":\"$v\"" }
+                cmd.add("-e")
+                cmd.add("{$varsJson}")
+            }
+            
+            // Add tags if specified
+            if (tags.isNotEmpty()) {
+                cmd.add("--tags")
+                cmd.add(tags.joinToString(","))
+            }
+            
+            // Add skip tags if specified
+            if (skipTags.isNotEmpty()) {
+                cmd.add("--skip-tags")
+                cmd.add(skipTags.joinToString(","))
+            }
+            
+            // Add playbook path
+            cmd.add(playbookPath)
+            
+            val startTime = System.currentTimeMillis()
+            val process = ProcessBuilder(cmd)
+                .redirectErrorStream(false)
+                .start()
+            
+            val completed = process.waitFor(600, TimeUnit.SECONDS) // 10 minute timeout for playbooks
+            
+            if (!completed) {
+                process.destroy()
+                return ExecutionResult.failure("Ansible playbook execution timed out")
+            }
+            
+            val output = process.inputStream.bufferedReader().readText()
+            val errorOutput = process.errorStream.bufferedReader().readText()
+            val exitCode = process.exitValue()
+            val duration = System.currentTimeMillis() - startTime
+            
+            ExecutionResult(
+                success = exitCode == 0,
+                output = output,
+                errorOutput = errorOutput,
+                exitCode = exitCode,
+                duration = duration
+            )
+        } catch (e: Exception) {
+            Log.e("Ansible playbook execution failed: ${e.message}")
+            ExecutionResult.failure("Playbook execution error: ${e.message}")
+        }
+    }
+
+    /**
      * Parses Ansible output to extract stdout and stderr.
      */
     private fun parseAnsibleOutput(output: String, errorOutput: String): Pair<String, String> {

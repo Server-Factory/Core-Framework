@@ -26,7 +26,7 @@ class ConnectionFactoryTest {
             .credentials(Credentials("testuser", password = "testpass"))
             .build()
 
-        val connection = ConnectionFactory.createConnection(config)
+        val connection = ConnectionFactory.create(config)
 
         assertNotNull(connection)
         assertEquals(ConnectionType.SSH, connection.getMetadata().type)
@@ -42,7 +42,7 @@ class ConnectionFactoryTest {
             .credentials(Credentials("testuser", agentSocket = "/tmp/ssh-agent.sock"))
             .build()
 
-        val connection = ConnectionFactory.createConnection(config)
+        val connection = ConnectionFactory.create(config)
 
         assertNotNull(connection)
         assertEquals(ConnectionType.SSH_AGENT, connection.getMetadata().type)
@@ -62,7 +62,7 @@ class ConnectionFactoryTest {
             ))
             .build()
 
-        val connection = ConnectionFactory.createConnection(config)
+        val connection = ConnectionFactory.create(config)
 
         assertNotNull(connection)
         assertEquals(ConnectionType.SSH_CERTIFICATE, connection.getMetadata().type)
@@ -86,7 +86,7 @@ class ConnectionFactoryTest {
             .bastionConfig(bastionConfig)
             .build()
 
-        val connection = ConnectionFactory.createConnection(config)
+        val connection = ConnectionFactory.create(config)
 
         assertNotNull(connection)
         assertEquals(ConnectionType.SSH_BASTION, connection.getMetadata().type)
@@ -102,7 +102,7 @@ class ConnectionFactoryTest {
             .credentials(Credentials("Administrator", password = "adminpass"))
             .build()
 
-        val connection = ConnectionFactory.createConnection(config)
+        val connection = ConnectionFactory.create(config)
 
         assertNotNull(connection)
         assertEquals(ConnectionType.WINRM, connection.getMetadata().type)
@@ -118,7 +118,7 @@ class ConnectionFactoryTest {
             .credentials(Credentials("ansible", keyPath = "/path/to/key"))
             .build()
 
-        val connection = ConnectionFactory.createConnection(config)
+        val connection = ConnectionFactory.create(config)
 
         assertNotNull(connection)
         assertEquals(ConnectionType.ANSIBLE, connection.getMetadata().type)
@@ -138,7 +138,7 @@ class ConnectionFactoryTest {
             ))
             .build()
 
-        val connection = ConnectionFactory.createConnection(config)
+        val connection = ConnectionFactory.create(config)
 
         assertNotNull(connection)
         assertEquals(ConnectionType.DOCKER, connection.getMetadata().type)
@@ -159,7 +159,7 @@ class ConnectionFactoryTest {
             ))
             .build()
 
-        val connection = ConnectionFactory.createConnection(config)
+        val connection = ConnectionFactory.create(config)
 
         assertNotNull(connection)
         assertEquals(ConnectionType.KUBERNETES, connection.getMetadata().type)
@@ -179,7 +179,7 @@ class ConnectionFactoryTest {
             ))
             .build()
 
-        val connection = ConnectionFactory.createConnection(config)
+        val connection = ConnectionFactory.create(config)
 
         assertNotNull(connection)
         assertEquals(ConnectionType.AWS_SSM, connection.getMetadata().type)
@@ -200,7 +200,7 @@ class ConnectionFactoryTest {
             ))
             .build()
 
-        val connection = ConnectionFactory.createConnection(config)
+        val connection = ConnectionFactory.create(config)
 
         assertNotNull(connection)
         assertEquals(ConnectionType.AZURE_SERIAL, connection.getMetadata().type)
@@ -221,7 +221,7 @@ class ConnectionFactoryTest {
             ))
             .build()
 
-        val connection = ConnectionFactory.createConnection(config)
+        val connection = ConnectionFactory.create(config)
 
         assertNotNull(connection)
         assertEquals(ConnectionType.GCP_OS_LOGIN, connection.getMetadata().type)
@@ -236,21 +236,21 @@ class ConnectionFactoryTest {
             .port(0)
             .build()
 
-        val connection = ConnectionFactory.createConnection(config)
+        val connection = ConnectionFactory.create(config)
 
         assertNotNull(connection)
         assertEquals(ConnectionType.LOCAL, connection.getMetadata().type)
     }
 
     @Test
-    @DisplayName("Test convenience method - createSSHConnection")
-    fun testConvenienceCreateSSHConnection() {
-        val connection = ConnectionFactory.createSSHConnection(
-            host = "test.example.com",
-            port = 22,
-            username = "testuser",
-            password = "testpass"
-        )
+    @DisplayName("Test SSH connection creation with builder")
+    fun testSSHConnectionBuilder() {
+        val connection = ConnectionFactory.build {
+            type(ConnectionType.SSH)
+            host("test.example.com")
+            port(22)
+            credentials(Credentials("testuser", password = "testpass"))
+        }
 
         assertNotNull(connection)
         val metadata = connection.getMetadata()
@@ -260,54 +260,45 @@ class ConnectionFactoryTest {
     }
 
     @Test
-    @DisplayName("Test convenience method - createLocalConnection")
-    fun testConvenienceCreateLocalConnection() {
-        val connection = ConnectionFactory.createLocalConnection("/tmp")
+    @DisplayName("Test Local connection creation with builder")
+    fun testLocalConnectionBuilder() {
+        val connection = ConnectionFactory.build {
+            type(ConnectionType.LOCAL)
+            host("localhost")
+        }
 
         assertNotNull(connection)
         assertEquals(ConnectionType.LOCAL, connection.getMetadata().type)
     }
 
     @Test
-    @DisplayName("Test convenience method - createDockerConnection")
-    fun testConvenienceCreateDockerConnection() {
-        val connection = ConnectionFactory.createDockerConnection(
-            containerName = "test-container",
-            dockerHost = "unix:///var/run/docker.sock"
-        )
+    @DisplayName("Test Docker connection creation with builder")
+    fun testDockerConnectionBuilder() {
+        val connection = ConnectionFactory.build {
+            type(ConnectionType.DOCKER)
+            host("test-container")
+        }
 
         assertNotNull(connection)
         assertEquals(ConnectionType.DOCKER, connection.getMetadata().type)
     }
 
     @Test
-    @DisplayName("Test connection registration")
-    fun testConnectionRegistration() {
-        val initialCount = ConnectionFactory.getConnectionCount()
-
+    @DisplayName("Test connection creation")
+    fun testConnectionCreation() {
         val config = ConnectionConfigBuilder()
             .type(ConnectionType.LOCAL)
             .host("localhost")
             .port(0)
             .build()
 
-        ConnectionFactory.createConnection(config)
-
-        val newCount = ConnectionFactory.getConnectionCount()
-        assertEquals(initialCount + 1, newCount)
+        val connection = ConnectionFactory.create(config)
+        assertNotNull(connection)
     }
 
     @Test
-    @DisplayName("Test get active connections")
-    fun testGetActiveConnections() {
-        val connections = ConnectionFactory.getActiveConnections()
-        assertNotNull(connections)
-        assertTrue(connections.size >= 0)
-    }
-
-    @Test
-    @DisplayName("Test validate configuration")
-    fun testValidateConfiguration() {
+    @DisplayName("Test configuration validation")
+    fun testConfigurationValidation() {
         val config = ConnectionConfigBuilder()
             .type(ConnectionType.SSH)
             .host("test.example.com")
@@ -315,7 +306,7 @@ class ConnectionFactoryTest {
             .credentials(Credentials("testuser", password = "testpass"))
             .build()
 
-        val result = ConnectionFactory.validateConfiguration(config)
+        val result = config.validate()
         assertTrue(result.isSuccess())
     }
 
@@ -329,7 +320,7 @@ class ConnectionFactoryTest {
             .credentials(Credentials("testuser", password = "testpass"))
             .build()
 
-        val result = ConnectionFactory.validateConfiguration(config)
+        val result = config.validate()
         assertTrue(result.isFailed())
     }
 

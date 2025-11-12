@@ -8,6 +8,7 @@ import net.milosvasic.factory.operation.command.CommandConfiguration
 import net.milosvasic.factory.platform.OperatingSystem
 import net.milosvasic.factory.remote.Connection
 import net.milosvasic.factory.remote.Remote
+import net.milosvasic.factory.remote.ssh.SSH
 import net.milosvasic.factory.terminal.Terminal
 import net.milosvasic.factory.terminal.TerminalCommand
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -61,10 +62,10 @@ class StubConnection : Connection, Notifying<OperationResult> {
     }
 
     override fun getRemote(): Remote {
-        TODO("Not yet implemented")
+        return SSH().getRemote()
     }
 
     override fun getRemoteOS(): OperatingSystem {
-        TODO("Not yet implemented")
+        return OperatingSystem.LINUX
     }
 }
