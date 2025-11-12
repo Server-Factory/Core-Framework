@@ -113,8 +113,10 @@ object Encryption {
             return String(decrypted, Charsets.UTF_8)
         } catch (e: javax.crypto.AEADBadTagException) {
             throw DecryptionException("Authentication failed. Data may have been tampered with or wrong master key provided.", e)
+        } catch (e: javax.crypto.BadPaddingException) {
+            throw DecryptionException("Authentication failed. Invalid ciphertext or tampered data.", e)
         } catch (e: Exception) {
-            throw DecryptionException("Failed to decrypt data: ${e.message}", e)
+            throw DecryptionException("Failed to decrypt data (data may be tampered): ${e.message}", e)
         }
     }
 

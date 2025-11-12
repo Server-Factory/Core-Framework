@@ -288,6 +288,7 @@ class SSHConnectionImpl(config: ConnectionConfig) : BaseConnection(config) {
             "protocol" to "SSH",
             "sshVersion" to "2.0",
             "compression" to config.options.compression.toString(),
+            "strictHostKeyChecking" to config.options.strictHostKeyChecking.toString(),
             "keyAuthentication" to (keyPath?.isNotEmpty() == true).toString()
         )
     }
